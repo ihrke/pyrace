@@ -48,8 +48,13 @@ class pSSLBA(StopTaskRaceModel):
         return go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf
 
     def loglikelihood(self,dat):
-        return crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
-                                          dat.condition, dat.response, dat.RT, dat.SSD, *self.get_cpars())
+        L=np.zeros(dat.ntrials, dtype=np.double)
+        pars=self.get_cpars()+(L,)
+        crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
+                                     dat.condition, dat.response, dat.RT, dat.SSD, *pars)
+        print "L(pSSLBA)=",L
+        LL=np.sum(np.log(np.maximum(L,1e-10)))
+        return LL
         
         
 class pSSLBA_modelA(pSSLBA):
