@@ -1,6 +1,15 @@
 #include <stdio.h>
 #include <math.h>
+
+/** WARNING:
+
+	 Gotta be really careful to include the correct GSL headers.
+	 If you don't include them properly for any function you use, 
+	 you will not get any warning but instead meaningless results... weird...
+
+ */
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_cdf.h>
 
 /** \brief maximum of two elements. */
 #define MAX(a,b) ((a) > (b) ? (a):(b))
@@ -20,15 +29,55 @@
 	 } while(0)
 
 
+
+double pnormP(double x, double mean, double sd){
+  /* PDF and CDF 
+  gsl_ran_gaussian_pdf(x, sd)+mean;
+  gsl_cdf_gaussian_P(x, sd)+mean;
+
+  return np.where(np.abs(x-mean)<7.*sd, stats.norm.cdf(x, loc=mean,scale=sd), np.where(x<mean,0,1))
+
+  TESTED
+  */
+  return (double)((ABS(x-mean)<(7*sd)) ? (gsl_cdf_gaussian_P(x-mean,sd)) : ( (x<mean) ? (0) : 1));
+}
+
+double dnormP(double x, double mean, double sd){
+  /*     return np.where(np.abs(x-mean)<7.*sd,stats.norm.pdf(x, loc=mean, scale=sd),0) 
+	TESTED
+	*/
+  return (double)(ABS(x-mean)<(7*sd)) ? (gsl_ran_gaussian_pdf(x-mean,sd)) : (0);
+}
+
+
+
 double lba_pdf(double t, double ter, double A, double v, double sv, double b){
+  /* TESTED */
   if( A<1e-10 ){ /* LATER */
 	 return MAX( 0, (b/(SQR(t)))*dnormP(b/t, v, sv)/pnormP(v/sv,0,1));
   }
-  return 0.0;
+  double zs=t*sv;
+  double zu=t*v;
+  double bminuszu=b-zu;
+  double bzu=bminuszu/zs;
+  double bzumax=(bminuszu-A)/zs;
+  return (double)MAX( 0, ( (v*(pnormP(bzu,0,1)-pnormP(bzumax,0,1))+(sv * (dnormP(bzumax,0,1)-dnormP(bzu,0,1))))/A)/pnormP(v/sv,0,1));
 }
 double lba_cdf(double t, double ter, double A, double v, double sv, double b){
-  gsl_ran_gaussian_pdf(t, 1.0);
-  return 0.0;
+  /* TESTED */
+  if( A<1e-10 ){
+	 return MIN(1, MAX( 0, (pnormP(b/t,v,sv)/pnormP(v/sv,0,1)))); /* LATER */
+  }
+  double zs=t*sv;
+  double zu=t*v;
+  double bminuszu=b-zu;
+  double xx=bminuszu-A;
+  double bzu=bminuszu/zs;
+  double bzumax=xx/zs;
+  double tmp1=zs*(dnormP(bzumax,0,1)-dnormP(bzu,0,1));
+  double tmp2=xx*pnormP(bzumax,0,1)-bminuszu*pnormP(bzu,0,1);
+  
+  return MIN( 1, MAX( 0, (1+(tmp1+tmp2)/A)/pnormP(v/sv,0,1)));
 }
 
 

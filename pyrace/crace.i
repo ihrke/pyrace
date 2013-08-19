@@ -15,6 +15,7 @@ This is a C-module speeding up some of pyrace's functions.
 
 %header %{
 #include "numpy/arrayobject.h"
+#include "crace.h"
 %}
 
 %feature("autodoc","1");
@@ -36,6 +37,11 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 								  double *pgf, double *ptf,  /* mixing probs */
 								  double *L); /* output */
 
+/* just exposing for debugging purposes */
+double pnormP(double x, double mean, double sd);
+double dnormP(double x, double mean, double sd);
+double lba_pdf(double t, double ter, double A, double v, double sv, double b);
+double lba_cdf(double t, double ter, double A, double v, double sv, double b);
 
 %clear (double* );
 %clear (int* );
