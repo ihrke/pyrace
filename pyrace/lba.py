@@ -15,6 +15,7 @@ class LBAAccumulator(Accumulator):
 
     def pdf(self, t):
         """LBA PDF for a single accumulator"""
+        t=np.maximum(t-self.ter, 1e-5) # absorbed into pdf 
         if self.A<1e-10: # LATER solution
             return np.maximum( 0, (self.b/(t**2)*dnormP(self.b/t, mean=self.v,sd=self.sv))
                               /pnormP(self.v/self.sv) )
@@ -28,6 +29,7 @@ class LBAAccumulator(Accumulator):
     
     def cdf(self,t):
         """LBA CDF for a single accumulator"""
+        t=np.maximum(t-self.ter, 1e-5) # absorbed into cdf         
         if self.A<1e-10: # LATER solution
             return np.minimum(1, np.maximum(0, (pnormP(self.b/t,mean=self.v,sd=self.sv))
                                             /pnormP(self.v/self.sv) ))

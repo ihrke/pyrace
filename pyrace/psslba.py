@@ -47,14 +47,14 @@ class pSSLBA(StopTaskRaceModel):
         ptf=np.array( self.prob_trigger_fail, dtype=np.float)
         return go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf
 
-    def loglikelihood(self,dat):
+    def loglikelihood_opt(self,dat):
         L=np.zeros(dat.ntrials, dtype=np.double)
         pars=self.get_cpars()+(L,)
         crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
                                      dat.condition, dat.response, dat.RT, dat.SSD, *pars)
-        print "L(pSSLBA)=",L
-        LL=np.sum(np.log(np.maximum(L,1e-10)))
-        return LL
+#        print "L(pSSLBA)=",L
+#        LL=np.sum(np.log(np.maximum(L,1e-10)))
+        return L
         
         
 class pSSLBA_modelA(pSSLBA):
@@ -73,7 +73,7 @@ class pSSLBA_modelA(pSSLBA):
         self.params={'ster':ster, 'ter':ter, 'A':A, 'Bs':Bs, 'B':B, 'Vs':Vs, 'V':V, 'v':v}
         self.sv=sv
         self.set_params(**self.params)
-        self.set_mixing_probabilities(1e-6,1e-6)
+        self.set_mixing_probabilities(0,0)
     
     def set_params(self, **kwargs):
         self.params.update(kwargs)
@@ -104,12 +104,15 @@ if __name__=="__main__":
              {'stimulus':['left', 'right']}]
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
-    dat=pd.read_csv('../data/sleep_stop_onesubj_test.csv')
+    dat=pd.read_csv('./data/sleep_stop_onesubj_test.csv')
     print dat.shape[0]
     dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
-    ds=StopTaskDataSet(design,dat)
+    dat2=dat#.head(20)
+    ds=StopTaskDataSet(design,dat2)
     
-    mod=pSSLBA_modelA(design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+#    mod=pSSLBA_modelA(design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+    #start=c(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
+    mod=pSSLBA_modelA(design, .1, .2, .2, .5, .8, 2, 1, 0)
     
     print mod.parstring(full=True)
     print mod
@@ -118,7 +121,6 @@ if __name__=="__main__":
     x=np.linspace(0.01,10, nsamples)
     condition=0
     dens=mod.dens_acc_go(x,condition,1)
-    pl.plot(x, dens)
 
     cscore=0
     for i in range(design.nresponses()):
@@ -127,6 +129,18 @@ if __name__=="__main__":
         cscore+=score
     print cscore
 
-    L=mod.loglikelihood(ds)
-    print L
-    pl.show()
+
+    rts=np.arange(0.01,5,0.01)
+    y=mod.dens_acc_go(rts,0,0)
+    y2=mod.dens_acc_go(rts,0,1)
+    pl.plot(rts,y)
+    pl.plot(rts,y2)
+    #pl.show()
+    
+    L,Ls=mod.loglikelihood(ds)
+#    L2=mod.loglikelihood_opt(ds)    
+    print Ls
+#    print L2
+#    pl.show()
+
+    print -2*L

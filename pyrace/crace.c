@@ -32,11 +32,7 @@
 
 double pnormP(double x, double mean, double sd){
   /* PDF and CDF 
-  gsl_ran_gaussian_pdf(x, sd)+mean;
-  gsl_cdf_gaussian_P(x, sd)+mean;
-
   return np.where(np.abs(x-mean)<7.*sd, stats.norm.cdf(x, loc=mean,scale=sd), np.where(x<mean,0,1))
-
   TESTED
   */
   return (double)((ABS(x-mean)<(7*sd)) ? (gsl_cdf_gaussian_P(x-mean,sd)) : ( (x<mean) ? (0) : 1));
@@ -81,6 +77,9 @@ double lba_cdf(double t, double ter, double A, double v, double sv, double b){
 }
 
 
+
+/** Returns raw likelihoods for each trial in pointer L.
+ */
 void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
 								  int *condition, int *response, double *RT, double *SSD, /* data */
 								  double *go_v, double *go_ter, double *go_A, double *go_b, double *go_sv,
@@ -95,7 +94,14 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 
   for( i=0; i<ntrials; i++ ){ /* calc L for each datapoint */
 	 /* failed GO */
+	 if( isnan(SSD[i]) && response[i]<0 ){
+		L[i]=pgf[ condition[i] ];
+	 }
+
+	 /* successful stop */
+	 else if( response[i]<0 && isfinite(SSD[i]) ){
+		L[i]=pgf[condition[i]] + (1-pgf[condition[i]])*(1-ptf[condition[i]])*pstop;
+	 }
   }
 
-  *L=1.0;
 }

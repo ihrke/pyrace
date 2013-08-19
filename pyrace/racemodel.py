@@ -91,6 +91,8 @@ class StopTaskRaceModel(RaceModel):
         equivalent to dfun.1 and dfun.2
         """
         accumulators=self.go_accumulators[condition]
+        if nacc<0 or nacc>=len(accumulators):
+            raise ValueError("nacc must be between 0 and %i"%(len(accumulators)-1))
         if np.any(t<1e-5):
             raise ValueError('need positive t here')
         out = np.ones_like(t, dtype=np.float)
@@ -119,12 +121,14 @@ class StopTaskRaceModel(RaceModel):
         equivalent to dfun.1s and dfun.2s
         """
         goacc=self.go_accumulators[condition]
+        if nacc<0 or nacc>=len(goacc):
+            raise ValueError("nacc must be between 0 and %i"%(len(goacc)-1))
+        
         stacc=self.stop_accumulators[condition]
-        tstop=np.maximum( t-stacc.ter-SSD, 1e-5)
+        tstop=t-SSD
         out=(1-stacc.cdf(tstop))
         
         for i,acc in enumerate(goacc):
-            tt=np.maximum(t-acc.ter,1e-5)
             if i==nacc:
                 out*=acc.pdf(t)
             else:
@@ -142,9 +146,9 @@ class StopTaskRaceModel(RaceModel):
         go_accs=self.go_accumulators[condition]
         st_acc=self.stop_accumulators[condition]
         def tmpf(t,gos,st,SSD):
-            r=st.pdf( np.maximum( t-st.ter-SSD,1e-5))
+            r=st.pdf( t-SSD )
             for acc in gos:
-                r*=(1-acc.cdf( np.maximum(t-acc.ter, 1e-5)))
+                r*=(1-acc.cdf( t ))
             return r
         pstop=scipy.integrate.quad(tmpf, st_acc.ter+SSD, np.infty, args=(go_accs,st_acc,SSD))[0]
         return np.maximum( np.minimum( pstop,1), 0) # protect from numerical errors
@@ -165,12 +169,14 @@ class StopTaskRaceModel(RaceModel):
             L[idx]=pgf
             
             # Sucessful stops
-            nstop=stats.itemfreq(dat.SSD[np.isfinite(dat.SSD)])
-            for j in nstop[:,0]:
-                idx=(dat.condition==cond) & (dat.response<0) & (dat.SSD==j)
-
-                # STOP(NA): pgf + (1-pgf)*(1-ptf)*pstop
-                L[idx]= (pgf + (1-pgf)*(1-ptf)*self.dfun_stop(cond, j))        
+            #if np.any(np.isfinite(dat.SSD))
+            cssds=dat.SSD[(np.isfinite(dat.SSD)) & (dat.condition==cond) & (dat.response<0)]
+            if len(cssds)>0:
+                nstop=stats.itemfreq(cssds) #dat.SSD[np.isfinite(dat.SSD)])
+                for j in nstop[:,0]:
+                    idx=(dat.condition==cond) & (dat.response<0) & (dat.SSD==j)
+                    # STOP(NA): pgf + (1-pgf)*(1-ptf)*pstop
+                    L[idx]= (pgf + (1-pgf)*(1-ptf)*self.dfun_stop(cond, j))        
                        
             # trials with responses
             for resp in range(self.design.nresponses()):
@@ -186,9 +192,10 @@ class StopTaskRaceModel(RaceModel):
                 ssds=dat.SSD[idx]
                 if len(rts)>0:
                     L[idx]=(1-pgf)*(ptf+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
-                
+
+        Ls=L.copy()
         L=np.sum(np.log(np.maximum(L,1e-10)))
-        return L
+        return L,Ls#, didx
            
     def deviance(self,dat):
         return -2.*self.loglikelihood(dat)
@@ -202,10 +209,11 @@ class StopTaskRaceModel(RaceModel):
         else:
             r=""
             for cond in range(self.design.nconditions()):
-                r+="{cidx} <-> {cstr}: {accstr}/{pgf},{ptf}\n".format(
+                r+="{cidx} <-> {cstr}: {goaccstr}/{stopaccstr} / {pgf},{ptf}\n".format(
                         cidx=cond,
                         cstr=self.design.condidx(cond),
-                        accstr=repr(self.go_accumulators[cond]),
+                        goaccstr=repr(self.go_accumulators[cond]),
+                        stopaccstr=repr(self.stop_accumulators[cond]),
                         pgf=self.prob_go_fail[cond],
                         ptf=self.prob_trigger_fail[cond])
             return r
