@@ -1,4 +1,7 @@
+pyrace
+======
 
+Race-Models for RT-data in python
 
 Mac OS X compilation
 --------------------
