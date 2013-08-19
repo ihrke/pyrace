@@ -10,6 +10,8 @@
  */
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_cdf.h>
+#include <gsl/gsl_integration.h>
+
 
 /** \brief maximum of two elements. */
 #define MAX(a,b) ((a) > (b) ? (a):(b))
@@ -49,6 +51,7 @@ double dnormP(double x, double mean, double sd){
 
 double lba_pdf(double t, double ter, double A, double v, double sv, double b){
   /* TESTED */
+  t=MAX(t-ter, 1e-5);
   if( A<1e-10 ){ /* LATER */
 	 return MAX( 0, (b/(SQR(t)))*dnormP(b/t, v, sv)/pnormP(v/sv,0,1));
   }
@@ -61,6 +64,7 @@ double lba_pdf(double t, double ter, double A, double v, double sv, double b){
 }
 double lba_cdf(double t, double ter, double A, double v, double sv, double b){
   /* TESTED */
+  t=MAX(t-ter, 1e-5);
   if( A<1e-10 ){
 	 return MIN(1, MAX( 0, (pnormP(b/t,v,sv)/pnormP(v/sv,0,1)))); /* LATER */
   }
@@ -78,6 +82,51 @@ double lba_cdf(double t, double ter, double A, double v, double sv, double b){
 
 
 
+double pstop_integrate( double t, void *params ){
+  void *pptr=params;
+  int nresponses=*((int*)pptr);   pptr+=sizeof(int);
+  int stride=*((int*)pptr);       pptr+=sizeof(int);
+  double *gv=*((double**)pptr);   pptr+=sizeof(double*);
+  double *gter=*((double**)pptr); pptr+=sizeof(double*);
+  double *gA=*((double**)pptr);   pptr+=sizeof(double*);
+  double *gb=*((double**)pptr);   pptr+=sizeof(double*);
+  double *gsv=*((double**)pptr);  pptr+=sizeof(double*);
+  double sv=*((double*)pptr);     pptr+=sizeof(double);
+  double ster=*((double*)pptr);   pptr+=sizeof(double);
+  double sA=*((double*)pptr);     pptr+=sizeof(double);
+  double sb=*((double*)pptr);     pptr+=sizeof(double);
+  double ssv=*((double*)pptr);    pptr+=sizeof(double);
+  double SSD=*((double*)pptr);
+
+  int i, idx;
+  double r=lba_pdf(t-SSD, ster, sA, sv, ssv, sb);
+
+  for(i=0; i<nresponses; i++ ){
+	 idx=i*stride;
+	 r*=(1-lba_cdf(t, gter[idx], gA[idx], gv[idx], gsv[idx], gb[idx]));
+  }
+  return r;
+}
+
+struct pstop_params {
+  int nresponses; int stride;
+  double *gv; double *gter; double *gA; double *gb; double *gsv; 
+  double sv; double ster; double sA; double sb; double ssv; double SSD;
+};
+
+double pstop_integrate2(double t, double *gv, double *gter, double *gA, double *gb, double *gsv, 
+							  int nresponses, int stride,
+							  double sv, double ster, double sA, double sb, double ssv, double SSD){
+  int i, idx;
+  double r=lba_pdf(t-SSD, ster, sA, sv, ssv, sb);
+
+  for(i=0; i<nresponses; i++ ){
+	 idx=i*stride;
+	 r*=(1-lba_cdf(t, gter[idx], gA[idx], gv[idx], gsv[idx], gb[idx]));
+  }
+  return r;
+}
+
 /** Returns raw likelihoods for each trial in pointer L.
  */
 void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
@@ -85,12 +134,30 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 								  double *go_v, double *go_ter, double *go_A, double *go_b, double *go_sv,
 								  double *stop_v, double *stop_ter, double *stop_A, double *stop_b, double *stop_sv,
 								  double *pgf, double *ptf, double *L ){
-  int i;
+
+  /*
   dprintf("nconditions=%i, nres=%i, ntri=%i\n", nconditions, nresponses, ntrials);
   for( i=0; i<ntrials; i++ ){
 	 dprintf("condition[%i]=%i, response=%i, RT=%f, SSD=%f\n", i, condition[i], response[i], RT[i], SSD[i]);
   }
   dprintf("L=%f\n",*L);
+  */
+
+  int i, j, idx;
+
+  /* setup for numerical integration of pstop */
+  gsl_integration_workspace * work =gsl_integration_workspace_alloc (1000);
+  double result, error;
+  int neval;
+  gsl_function F;
+  F.function = &pstop_integrate;
+  struct pstop_params params;
+  F.params=&params;
+  params.nresponses=nresponses;
+  params.stride=nconditions;
+  double pstop;
+  
+  double dens;
 
   for( i=0; i<ntrials; i++ ){ /* calc L for each datapoint */
 	 /* failed GO */
@@ -100,8 +167,48 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 
 	 /* successful stop */
 	 else if( response[i]<0 && isfinite(SSD[i]) ){
+		dprintf("succstop, trial=%i\n",i);
+		/* set parameters for integration */
+		params.gv  =&(go_v  [condition[i]]);
+		params.gter=&(go_ter[condition[i]]);
+		params.gA  =&(go_A  [condition[i]]);
+		params.gb  =&(go_b  [condition[i]]);
+		params.gsv =&(go_sv [condition[i]]);
+		
+		params.sv  =(stop_v  [condition[i]]);
+		params.ster=(stop_ter[condition[i]]);
+		params.sA  =(stop_A  [condition[i]]);
+		params.sb  =(stop_b  [condition[i]]);
+		params.ssv =(stop_sv [condition[i]]);
+		params.SSD = SSD[i];
+
+		gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-10, 1e-10, 1000, work, &result, &error); 
+		dprintf("result=%f, error=%f, neval=%i\n",result, error, work->size);
+		pstop=result;
 		L[i]=pgf[condition[i]] + (1-pgf[condition[i]])*(1-ptf[condition[i]])*pstop;
+	 }
+
+	 /* go-trials with response */
+	 else if( response[i]>=0 && isnan(SSD[i]) ){
+		dens=1.0;
+		//double lba_pdf(double t, double ter, double A, double v, double sv, double b){
+		for( j=0; j<nresponses; j++ ){
+		  idx=condition[i]+(j*nconditions);
+		  if( j==response[i] ){
+			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=lba_pdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]);
+		  } else {
+			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=(1-lba_cdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]));
+		  }
+		}
+		if( (dens<0) || !isfinite(dens) )
+		  dens=0.0;
+		L[i]=(1-pgf[condition[i]])*dens;
 	 }
   }
 
+
+  /* clean up */
+  gsl_integration_workspace_free(work);
 }

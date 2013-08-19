@@ -50,8 +50,9 @@ class pSSLBA(StopTaskRaceModel):
     def loglikelihood_opt(self,dat):
         L=np.zeros(dat.ntrials, dtype=np.double)
         pars=self.get_cpars()+(L,)
+        resp=np.array(dat.response, dtype=np.int32)
         crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
-                                     dat.condition, dat.response, dat.RT, dat.SSD, *pars)
+                                     dat.condition.astype(np.int32), resp, dat.RT, dat.SSD, *pars)
 #        print "L(pSSLBA)=",L
 #        LL=np.sum(np.log(np.maximum(L,1e-10)))
         return L
@@ -138,9 +139,16 @@ if __name__=="__main__":
     #pl.show()
     
     L,Ls=mod.loglikelihood(ds)
-#    L2=mod.loglikelihood_opt(ds)    
-    print Ls
+    L2=mod.loglikelihood_opt(ds)
+
+    goodix=(np.abs(Ls-L2)<1e-5) & (L2>0)
+    badix=np.logical_not(goodix) & (L2>0)
+    
+
+    
+    print L2
+#    print Ls
 #    print L2
 #    pl.show()
 
-    print -2*L
+#    print -2*L
