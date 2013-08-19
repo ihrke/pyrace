@@ -1,10 +1,10 @@
 %define DOCSTRING
 "
-This is a docstring
+This is a C-module speeding up some of pyrace's functions.
 "
 %enddef
 
-%module(docstring=DOCSTRING) pyrace
+%module(docstring=DOCSTRING) crace
 %{
 #define SWIG_FILE_WITH_INIT
 %}
@@ -24,6 +24,9 @@ This is a docstring
 %typemap(in) (double*){
   $1 = (double*)PyArray_DATA($input);
 }
+%typemap(in) (int*){
+  $1 = (int*)PyArray_DATA($input);
+}
 
 
 double sslba_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
@@ -34,3 +37,4 @@ double sslba_loglikelihood( int nconditions, int nresponses, int ntrials,       
 
 
 %clear (double* );
+%clear (int* );

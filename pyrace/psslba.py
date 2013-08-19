@@ -6,7 +6,7 @@ from tools import *
 from racemodel import *
 from data import *
 from lba import *
-
+import crace
 
 class pSSLBA(StopTaskRaceModel):
     """Need this layer for reimplementing fast likelihood"""
@@ -46,6 +46,10 @@ class pSSLBA(StopTaskRaceModel):
         pgf=np.array( self.prob_go_fail, dtype=np.float)
         ptf=np.array( self.prob_trigger_fail, dtype=np.float)
         return go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf
+
+    def loglikelihood(self,dat):
+        return crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
+                                          dat.condition, dat.response, dat.RT, dat.SSD, *self.get_cpars())
         
         
 class pSSLBA_modelA(pSSLBA):
@@ -80,7 +84,7 @@ class pSSLBA_modelA(pSSLBA):
                            for resp in self.design.get_responses() ])
         
         stop_acc=[]
-        for cond in range(design.nconditions()):
+        for cond in range(self.design.nconditions()):
             stop_acc.append( LBAAccumulator( self.params['ster'], self.params['A'], self.params['Vs'], 
                                             self.sv, self.params['A']+self.params['Bs'] ) )
         
