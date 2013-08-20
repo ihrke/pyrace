@@ -4,3 +4,4 @@ from .tools import *
 from .lba import *
 from .psslba import *
 from .racemodel import *
+from .optimize import *
