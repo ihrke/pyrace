@@ -146,7 +146,7 @@ if __name__=="__main__":
     
 
     
-    print L2
+#    print L2
 #    print Ls
 #    print L2
 #    pl.show()

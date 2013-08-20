@@ -167,7 +167,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 
 	 /* successful stop */
 	 else if( response[i]<0 && isfinite(SSD[i]) ){
-		dprintf("succstop, trial=%i\n",i);
+		//dprintf("succstop, trial=%i\n",i);
 		/* set parameters for integration */
 		params.gv  =&(go_v  [condition[i]]);
 		params.gter=&(go_ter[condition[i]]);
@@ -183,7 +183,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 		params.SSD = SSD[i];
 
 		gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-10, 1e-10, 1000, work, &result, &error); 
-		dprintf("result=%f, error=%f, neval=%i\n",result, error, work->size);
+		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
 		pstop=result;
 		L[i]=pgf[condition[i]] + (1-pgf[condition[i]])*(1-ptf[condition[i]])*pstop;
 	 }
@@ -195,16 +195,40 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 		for( j=0; j<nresponses; j++ ){
 		  idx=condition[i]+(j*nconditions);
 		  if( j==response[i] ){
-			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
 			 dens*=lba_pdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]);
 		  } else {
-			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
 			 dens*=(1-lba_cdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]));
 		  }
 		}
 		if( (dens<0) || !isfinite(dens) )
 		  dens=0.0;
 		L[i]=(1-pgf[condition[i]])*dens;
+	 }
+
+	 /* STOP-trials with response */
+	 else if( response[i]>=0 && isfinite(SSD[i]) ){
+		idx=condition[i];
+		dens=(1-lba_cdf(RT[i]-SSD[i], stop_ter[idx], stop_A[idx], stop_v[idx], stop_sv[idx], stop_b[idx]));
+
+		for( j=0; j<nresponses; j++ ){
+		  idx=condition[i]+(j*nconditions);
+		  if( j==response[i] ){
+			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=lba_pdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]);
+		  } else {
+			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=(1-lba_cdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]));
+		  }
+		}
+		
+		L[i]=(1-pgf[condition[i]])*(ptf[condition[i]]+(1-ptf[condition[i]])*dens);
+	 }
+
+	 /* invalid -> error message */
+	 else {
+		dprintf("ERROR: trial %i has not been processed by loglikelihood!\n",i);
 	 }
   }
 
