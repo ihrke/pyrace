@@ -1,4 +1,5 @@
 import scipy
+import pylab as pl
 from collections import Iterable
 
 
@@ -194,7 +195,7 @@ class StopTaskRaceModel(RaceModel):
                     L[idx]=(1-pgf)*(ptf+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
         return L
 
-    def sample(self, n, condition, SSD=None):
+    def sample(self, n, condition, SSD=None, upper_limit=np.infty):
         """
         sample from condition accumulators.
         If SSD!=None, use the stop-distribution, else only go-accs.
@@ -203,7 +204,7 @@ class StopTaskRaceModel(RaceModel):
         """
         # sample RTs from all accumulators
         goaccs=self.go_accumulators[condition]
-        go_rts=np.array([acc.sample(n) for acc in goaccs])
+        go_rts=np.array([acc.sample(n, upper_limit=upper_limit) for acc in goaccs])
 
         rts=np.min(go_rts,axis=0)
         winner=np.argmin(go_rts,axis=0)
@@ -223,7 +224,7 @@ class StopTaskRaceModel(RaceModel):
 
         return winner,rts
         
-    def simulate(self, nsim, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5])):
+    def simulate(self, nsim, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5]), upper_limit=np.infty):
         """Simulate a dataset of nsim*nconditions trials corresponding to self.design.
 
         There will be nsim*nconditions trials, a fraction pstop of which are stop-trials.
@@ -247,18 +248,18 @@ class StopTaskRaceModel(RaceModel):
         response=[]
         SSDs=[]
         for cond in range(self.design.nconditions()):
-            print "Condition: %s"%self.design.condidx(cond)
+#            print "Condition: %s"%self.design.condidx(cond)
             conditions+=[cond]*nsim
             
             # go-trials
-            resp,rt=self.sample(ngo, cond)
+            resp,rt=self.sample(ngo, cond, upper_limit=upper_limit)
             RT+=list(rt)
             response+=list(resp)
             SSDs+=[np.nan]*ngo
 
             # stop-trials
             for ssd in SSD:
-                print " SSD=",ssd
+#                print " SSD=",ssd
                 SSDs+=[ssd]*ssdn
                 resp,rt=self.sample(ssdn, cond, ssd)
                 RT+=list(rt)
@@ -271,6 +272,32 @@ class StopTaskRaceModel(RaceModel):
              'SSD':np.array(SSDs, dtype=np.double)}
         ds=StopTaskDataSet(self.design, dat, format='dict')
         return ds
+
+    def plot_fit_go(self, dat, lims=(0.1,10), nbins=20):
+        """
+        Plot histogram of GO-trials and the model-solution per condition.
+        """
+        colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
+        a=int(np.sqrt(self.design.nconditions()))
+        b=np.ceil(self.design.nconditions()/a)
+
+        t=np.linspace(lims[0], lims[1], 1000)
+        for cond in range(self.design.nconditions()):
+            pl.subplot(a,b,cond)
+            goix=((dat.condition==cond) & np.isfinite(dat.RT) & np.isnan(dat.SSD))
+            for ri,resp in enumerate(self.design.responses):
+                d=dat.RT[goix & (dat.response==ri)]
+                
+                if len(d)>0:
+                    h,hx=np.histogram(d, density=True, bins=nbins)
+                    hx=hx[:-1]#-(hx[1]-hx[0])/2.
+                    h=h*(len(d)/float((len(dat.RT[goix]))))
+                    pl.bar(hx, h, width=(hx[1]-hx[0]), alpha=.3, color=colors[ri], label='resp=%s'%resp)
+#                    pl.hist(d, nbins, normed=True, alpha=.3, color=colors[ri], label='resp=%s'%resp)
+                pl.plot(t, self.dens_acc_go(t, cond, ri), color=colors[ri], linewidth=3)
+            pl.legend()
+            pl.title(":".join(self.design.condidx(cond)))
+
     
     def loglikelihood(self,dat):
         return np.sum(np.log(np.maximum(self.likelihood_trials(dat),1e-10)))
@@ -283,7 +310,8 @@ class StopTaskRaceModel(RaceModel):
     
     def parstring(self, full=False):
         if not full:
-            return ",".join(["=".join([str(k),str(v)]) for k,v in self.params.items()])
+            return str(self.params)
+#            return ",".join(["=".join([str(k),str(v)]) for k,v in self.params.items()])
         else:
             r=""
             for cond in range(self.design.nconditions()):

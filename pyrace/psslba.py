@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import scipy
+from collections import namedtuple
 
 from tools import *
 from racemodel import *
@@ -59,7 +60,9 @@ class pSSLBA(StopTaskRaceModel):
         
         
 class pSSLBA_modelA(pSSLBA):
-    def __init__(self, design, ster, ter, A, Bs, B, Vs, V, v, sv=1):
+    paramspec=namedtuple('modelpars_pSSLBA_modelA', ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v'])
+    
+    def __init__(self, design, pars=None):
         """
         ster - non-decistion time for all stop-accumulators
         ter - non-decision time for all go-accumulators
@@ -71,55 +74,59 @@ class pSSLBA_modelA(pSSLBA):
         v   - mean drift for all wrong go-accs
         """
         self.design=design
-        self.parlist=['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
-        self.logpars=['ster', 'ter', 'A', 'Bs', 'B']
-        self.params={'ster':ster, 'ter':ter, 'A':A, 'Bs':Bs, 'B':B, 'Vs':Vs, 'V':V, 'v':v}
-        self.sv=sv
-        self.set_params(**self.params)
+        self.sv=1.0
+        self.set_params(pars)
+
         self.set_mixing_probabilities(0,0)
 
     def trans(self, pars):
-        """pars is a dictionary of the parameters;
+        """pars is a paramspec
+        
         Returns an array of ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
         in transformed space for the optimizer.
         """
-        x=np.zeros(len(self.parlist), dtype=np.double)*np.nan
-        for i,k in enumerate(self.logpars):
-            x[i]=np.log(pars[k])
-        x[5]=pars['Vs']
-        x[6]=pars['V']
-        x[7]=pars['v']
+        x=np.zeros(len(self.params), dtype=np.double)*np.nan
+        x[0]=np.log(pars.ster)
+        x[1]=np.log(pars.ter)
+        x[2]=np.log(pars.A)
+        x[3]=np.log(pars.Bs)
+        x[4]=np.log(pars.B)
+        x[5]=pars.Vs
+        x[6]=pars.V
+        x[7]=pars.v
         return x
         
     def untrans(self, x):
         """reverse the process in trans, i.e., return a dictionary form vector"""
-        pars={}
-        for i,k in enumerate(self.logpars):
-            pars[k]=np.exp(x[i])
-        pars['Vs']=x[5]
-        pars['V']=x[6]
-        pars['v']=x[7]
+        pars=pSSLBA_modelA.paramspec(
+            ster=np.exp(x[0]),
+            ter=np.exp(x[1]),
+            A=np.exp(x[2]),
+            Bs=np.exp(x[3]),
+            B=np.exp(x[4]),
+            Vs=x[5],
+            V=x[6],
+            v=x[7])
         return pars
         
-    def set_params(self, **kwargs):
-        self.params.update(kwargs)
+    def set_params(self, pars):
+        self.params=pars
         go_acc=[]
         for cond in range(self.design.nconditions()):
             correct=self.design.correct_response(cond)
-            go_acc.append([ LBAAccumulator(self.params['ter'], self.params['A'], 
-                                           self.params['V' if resp==correct else 'v'], 
-                                           self.sv, self.params['A']+self.params['B'],
+            go_acc.append([ LBAAccumulator(self.params.ter, self.params.A, 
+                                           self.params.V if resp==correct else self.params.v, 
+                                           self.sv, self.params.A+self.params.B,
                                            name='go-'+":".join(self.design.condidx(cond))
                                              +'-%s'%('correct' if resp==correct else 'incorrect')) 
                            for resp in self.design.get_responses() ])
         
         stop_acc=[]
         for cond in range(self.design.nconditions()):
-            stop_acc.append( LBAAccumulator( self.params['ster'], self.params['A'], self.params['Vs'], 
-                                            self.sv, self.params['A']+self.params['Bs'] ) )
+            stop_acc.append( LBAAccumulator( self.params.ster, self.params.A, self.params.Vs, 
+                                             self.sv, self.params.A+self.params.Bs ) )
         
         self.set_accumulators(go_acc, stop_acc)
-
 
 if __name__=="__main__":
     import pylab as pl
