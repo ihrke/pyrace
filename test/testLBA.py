@@ -18,6 +18,33 @@ class testLBA(unittest.TestCase):
         self.assertAlmostEqual(0, acc.cdf(0.01))
         assert abs( acc.cdf(10000)-1)<1e-4
 
+    def test_sample(self):
+        acc=LBAAccumulator(.2, .2, 2.0, 1.0, 1.0)
+        nsamples=100000
+        x=np.linspace(0,10, nsamples)
+        
+        import pylab as pl
+        samp=acc.sample(nsamples)
+        #dens=scipy.stats.gaussian_kde(samp[samp<10])
+        #pl.hist(acc.sample(nsamples),200, normed=True)
+        h,hx=np.histogram(samp, density=True, bins=1000)
+        hx=hx[:-1]+(hx[1]-hx[0])/2.
+        assert np.any(np.abs(h-acc.pdf(hx))<0.5)
+        #pl.bar(hx, np.abs(h-acc.pdf(hx)))
+        #pl.xlim(-1,1001)
+        
+        if False:
+            #pl.subplot(2,1,1)
+            pl.hist(samp[samp<10],300, normed=True, alpha=.3)
+            pl.xlim(0,10)
+
+            #pl.subplot(2,1,2)                
+            pl.plot(x,acc.pdf(x), color='red', label='analytical')
+            #pl.plot(x,dens(x),    color='green', label='kde')
+            pl.legend()
+            pl.show()
+        
+
 
 class testpSSLBA(unittest.TestCase):
     def test_init(self):
@@ -50,9 +77,6 @@ class testpSSLBA(unittest.TestCase):
         L=mod.loglikelihood(ds)
         assert np.isfinite(L)
         print "L=",L
-
-
-
 
 
 if __name__ == '__main__':

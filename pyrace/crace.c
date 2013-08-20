@@ -232,7 +232,6 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 	 }
   }
 
-
   /* clean up */
   gsl_integration_workspace_free(work);
 }

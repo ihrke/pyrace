@@ -153,7 +153,7 @@ class StopTaskRaceModel(RaceModel):
         pstop=scipy.integrate.quad(tmpf, st_acc.ter+SSD, np.infty, args=(go_accs,st_acc,SSD))[0]
         return np.maximum( np.minimum( pstop,1), 0) # protect from numerical errors
         
-    def loglikelihood(self, dat):
+    def likelihood_trials(self, dat):
         """generic and slow implementation (overwrite in child for performance)"""
         if not isinstance(dat,StopTaskDataSet):
             raise ValueError('data needs to be a StopTaskDataSet')
@@ -192,11 +192,15 @@ class StopTaskRaceModel(RaceModel):
                 ssds=dat.SSD[idx]
                 if len(rts)>0:
                     L[idx]=(1-pgf)*(ptf+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
+        return L
 
-        Ls=L.copy()
-        L=np.sum(np.log(np.maximum(L,1e-10)))
-        return L,Ls#, didx
-           
+    def simulate(self, n):
+        """Simulate a dataset corresponding to self.design"""
+        
+    
+    def loglikelihood(self,dat):
+        return np.sum(np.log(np.maximum(self.likelihood_trials(dat),1e-10)))
+    
     def deviance(self,dat):
         return -2.*self.loglikelihood(dat)
     

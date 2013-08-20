@@ -47,7 +47,7 @@ class pSSLBA(StopTaskRaceModel):
         ptf=np.array( self.prob_trigger_fail, dtype=np.float)
         return go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf
 
-    def loglikelihood_opt(self,dat):
+    def likelihood_trials(self,dat):
         L=np.zeros(dat.ntrials, dtype=np.double)
         pars=self.get_cpars()+(L,)
         resp=np.array(dat.response, dtype=np.int32)
@@ -138,11 +138,11 @@ if __name__=="__main__":
     pl.plot(rts,y2)
     #pl.show()
     
-    L,Ls=mod.loglikelihood(ds)
-    L2=mod.loglikelihood_opt(ds)
-
-    goodix=(np.abs(Ls-L2)<1e-5) & (L2>0)
-    badix=np.logical_not(goodix) & (L2>0)
+    #L,Ls=mod.loglikelihood(ds)
+    L2=mod.loglikelihood(ds)
+    print L2
+    #goodix=(np.abs(Ls-L2)<1e-5) & (L2>0)
+    #badix=np.logical_not(goodix) & (L2>0)
     
 
     

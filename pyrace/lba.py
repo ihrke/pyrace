@@ -1,7 +1,9 @@
 import numpy as np
+import scipy
+import scipy.stats as stats
+
 from tools import *
 from racemodel import *
-import scipy
 
 class LBAAccumulator(Accumulator):
     def __init__(self, ter, A, v, sv, b, name='unknown'):
@@ -43,7 +45,13 @@ class LBAAccumulator(Accumulator):
         tmp2=xx*pnormP(bzumax)-bminuszu*pnormP(bzu)
         return np.minimum(np.maximum(0,(1+(tmp1+tmp2)/self.A)/pnormP(self.v/self.sv)),1)
 
-
+    def sample(self, n):
+        """draw n random samples from this accumulator's distribution"""
+        vs=stats.truncnorm.rvs((0-self.v)/float(self.sv), np.infty, loc=self.v, scale=self.sv, size=n)
+        zs=stats.uniform.rvs(0,self.A,size=n)
+        rts=self.ter+((self.b - zs)/vs)
+        return rts
+    
 if __name__=="__main__":
     import pylab as pl
     # test LBA pdf
