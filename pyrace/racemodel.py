@@ -221,7 +221,6 @@ class StopTaskRaceModel(RaceModel):
             winner[(stop_rt<rts) & np.logical_not(tf)]=-1            
             rts[(stop_rt<rts) & np.logical_not(tf)]=np.nan #stop_rt[stop_rt<rts]
 
-        
         return winner,rts
         
     def simulate(self, nsim, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5])):
@@ -266,13 +265,12 @@ class StopTaskRaceModel(RaceModel):
                 response+=list(resp)
 
         ## wrap up in StopTaskDataSet
-        return {'conditions':np.array(conditions, dtype=np.int),
-                'RT':np.array(RT, dtype=np.double),
-                'response':np.array(response, dtype=np.int),
-                'SSD':np.array(SSDs, dtype=np.double)}
-                
-            
-        
+        dat={'condition':np.array(conditions, dtype=np.int),
+             'RT':np.array(RT, dtype=np.double),
+             'response':np.array(response, dtype=np.int),
+             'SSD':np.array(SSDs, dtype=np.double)}
+        ds=StopTaskDataSet(self.design, dat, format='dict')
+        return ds
     
     def loglikelihood(self,dat):
         return np.sum(np.log(np.maximum(self.likelihood_trials(dat),1e-10)))

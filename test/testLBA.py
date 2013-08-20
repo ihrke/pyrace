@@ -59,7 +59,7 @@ class testpSSLBA(unittest.TestCase):
         self.mod=pSSLBA_modelA(self.design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
 
     def test_simulate(self):
-        print self.mod.simulate(100)
+        print self.mod.simulate(100).as_dataframe(form='wide')
         
     def test_init(self):
         factors=[{'sleepdep':['normal','deprived']},
