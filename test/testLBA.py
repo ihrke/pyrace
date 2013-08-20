@@ -47,6 +47,20 @@ class testLBA(unittest.TestCase):
 
 
 class testpSSLBA(unittest.TestCase):
+    def setUp(self):
+        self.factors=[{'sleepdep':['normal','deprived']},
+                 {'stimulus':['left', 'right']}]
+        self.responses=['left','right']
+        self.design=Design(self.factors,self.responses, 'stimulus')
+        self.dat=pd.read_csv('./data/sleep_stop_onesubj_test.csv')
+        assert self.dat.shape[0]==800
+        self.dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
+        self.ds=StopTaskDataSet(self.design,self.dat)
+        self.mod=pSSLBA_modelA(self.design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+
+    def test_simulate(self):
+        print self.mod.simulate(100)
+        
     def test_init(self):
         factors=[{'sleepdep':['normal','deprived']},
                  {'stimulus':['left', 'right']}]

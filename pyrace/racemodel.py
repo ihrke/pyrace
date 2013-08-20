@@ -194,8 +194,84 @@ class StopTaskRaceModel(RaceModel):
                     L[idx]=(1-pgf)*(ptf+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
         return L
 
-    def simulate(self, n, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5])):
-        """Simulate a dataset of n trials corresponding to self.design"""
+    def sample(self, n, condition, SSD=None):
+        """
+        sample from condition accumulators.
+        If SSD!=None, use the stop-distribution, else only go-accs.
+
+        returns (response, RT) both are n-arrays
+        """
+        # sample RTs from all accumulators
+        goaccs=self.go_accumulators[condition]
+        go_rts=np.array([acc.sample(n) for acc in goaccs])
+
+        rts=np.min(go_rts,axis=0)
+        winner=np.argmin(go_rts,axis=0)
+
+        # go-failures
+        gof=stats.binom.rvs(1,self.prob_go_fail[condition],size=n).astype(np.bool) # 0/1 for go-failures
+        winner[gof]=-1
+        rts[gof]=np.nan
+
+        # STOP trials
+        if SSD!=None:
+            stop_rt=self.stop_accumulators[condition].sample(n)
+            # trigger-failures
+            tf=stats.binom.rvs(1,self.prob_trigger_fail[condition],size=n).astype(np.bool) # 0/1 for trigger-failures
+            winner[(stop_rt<rts) & np.logical_not(tf)]=-1            
+            rts[(stop_rt<rts) & np.logical_not(tf)]=np.nan #stop_rt[stop_rt<rts]
+
+        
+        return winner,rts
+        
+    def simulate(self, nsim, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5])):
+        """Simulate a dataset of nsim*nconditions trials corresponding to self.design.
+
+        There will be nsim*nconditions trials, a fraction pstop of which are stop-trials.
+        There are an equal number of stop-trials for each of the provided SSDs
+        if a single number pstop is used, else there can be a different
+        pstop for each SSD.
+        """
+        nssd=len(SSD)
+        if isinstance(pstop, (int, long, float, complex)) or len(pstop)==1:
+            pstop=np.array([pstop/float(nssd) for i in range(nssd)], dtype=np.double)
+        if len(pstop)!=nssd:
+            raise ValueError("pstop and SSD array must be same length, have %i!=%i"%(len(pstop),nssd))
+
+        ssdn = np.round(np.sum(pstop)*nsim/float(nssd))
+        nstop = nssd*ssdn
+        ngo = nsim-(nstop)
+        print "Simulating %i GO and %i STOP trials (%i of each of %i SSDs) (%i overall)"%(ngo, nstop, ssdn, nssd, ngo+nstop)
+
+        conditions=[]
+        RT=[]
+        response=[]
+        SSDs=[]
+        for cond in range(self.design.nconditions()):
+            print "Condition: %s"%self.design.condidx(cond)
+            conditions+=[cond]*nsim
+            
+            # go-trials
+            resp,rt=self.sample(ngo, cond)
+            RT+=list(rt)
+            response+=list(resp)
+            SSDs+=[np.nan]*ngo
+
+            # stop-trials
+            for ssd in SSD:
+                print " SSD=",ssd
+                SSDs+=[ssd]*ssdn
+                resp,rt=self.sample(ssdn, cond, ssd)
+                RT+=list(rt)
+                response+=list(resp)
+
+        ## wrap up in StopTaskDataSet
+        return {'conditions':np.array(conditions, dtype=np.int),
+                'RT':np.array(RT, dtype=np.double),
+                'response':np.array(response, dtype=np.int),
+                'SSD':np.array(SSDs, dtype=np.double)}
+                
+            
         
     
     def loglikelihood(self,dat):

@@ -3,6 +3,8 @@ pyrace
 
 Race-Models for RT-data in python
 
+This is work-in-progress and currently only for Stop-Tasks.
+
 Mac OS X compilation
 --------------------
 
