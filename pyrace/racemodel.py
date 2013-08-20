@@ -194,8 +194,8 @@ class StopTaskRaceModel(RaceModel):
                     L[idx]=(1-pgf)*(ptf+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
         return L
 
-    def simulate(self, n):
-        """Simulate a dataset corresponding to self.design"""
+    def simulate(self, n, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5])):
+        """Simulate a dataset of n trials corresponding to self.design"""
         
     
     def loglikelihood(self,dat):

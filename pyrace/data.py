@@ -5,7 +5,10 @@ import numpy as np
 
 class StopTaskDataSet(object):
     """
-    Implements a data-set for the stop-task
+    Implements a data-set for the stop-task.
+
+    
+    
     Internally, it stores the data using the following structure:
     
     condition SSD RT response
@@ -57,19 +60,33 @@ class StopTaskDataSet(object):
             row=data.irow(i)
             cidx=[row[fac] for fac in self.design.factors]
             self.condition[i]=self.design.condidx(cidx)
-    def as_dataframe(self):
-        return pd.DataFrame({'condition':self.condition,
-                             'SSD':self.SSD,
-                             'RT':self.RT,
-                             'response':self.response})
+            
+    def as_dataframe(self, form='long', conditions_expanded=True):
+        if form=='long':
+            if conditions_expanded:
+                df=pd.DataFrame({'condition':[":".join(self.design.condidx(c)) for c in self.condition],
+                                 'SSD':self.SSD,
+                                 'RT':self.RT,
+                                 'response':self.response})
+            else:
+                df=pd.DataFrame({'condition':self.condition,
+                                 'SSD':self.SSD,
+                                 'RT':self.RT,
+                                 'response':self.response})
+        elif form=='wide':
+            raise NotImplementedError
+        else:
+            raise ValueError("don't know how to handle format %s"%form)
+        return df
 
 if __name__=="__main__":
     factors=[{'sleepdep':['normal','deprived']},
              {'stimulus':['left', 'right']}]
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
-    dat=pd.read_csv('../data/sleep_stop_onesubj_test.csv')
+    dat=pd.read_csv('./data/sleep_stop_onesubj_test.csv')
     print dat.shape[0]
     dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
     ds=StopTaskDataSet(design,dat)
-    print ds.as_dataframe().head(50)
+    print ds.as_dataframe(conditions_expanded=False).head(50)
+    print ds.as_dataframe(conditions_expanded=True).head(50)
