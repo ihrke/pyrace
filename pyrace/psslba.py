@@ -71,17 +71,41 @@ class pSSLBA_modelA(pSSLBA):
         v   - mean drift for all wrong go-accs
         """
         self.design=design
+        self.parlist=['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
+        self.logpars=['ster', 'ter', 'A', 'Bs', 'B']
         self.params={'ster':ster, 'ter':ter, 'A':A, 'Bs':Bs, 'B':B, 'Vs':Vs, 'V':V, 'v':v}
         self.sv=sv
         self.set_params(**self.params)
         self.set_mixing_probabilities(0,0)
-    
+
+    def trans(self, pars):
+        """pars is a dictionary of the parameters;
+        Returns an array of ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
+        in transformed space for the optimizer.
+        """
+        x=np.zeros(len(self.parlist), dtype=np.double)*np.nan
+        for i,k in enumerate(self.logpars):
+            x[i]=np.log(pars[k])
+        x[5]=pars['Vs']
+        x[6]=pars['V']
+        x[7]=pars['v']
+        return x
+        
+    def untrans(self, x):
+        """reverse the process in trans, i.e., return a dictionary form vector"""
+        pars={}
+        for i,k in enumerate(self.logpars):
+            pars[k]=np.exp(x[i])
+        pars['Vs']=x[5]
+        pars['V']=x[6]
+        pars['v']=x[7]
+        return pars
+        
     def set_params(self, **kwargs):
         self.params.update(kwargs)
         go_acc=[]
         for cond in range(self.design.nconditions()):
             correct=self.design.correct_response(cond)
-            print correct
             go_acc.append([ LBAAccumulator(self.params['ter'], self.params['A'], 
                                            self.params['V' if resp==correct else 'v'], 
                                            self.sv, self.params['A']+self.params['B'],

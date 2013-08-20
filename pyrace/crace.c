@@ -182,7 +182,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 		params.ssv =(stop_sv [condition[i]]);
 		params.SSD = SSD[i];
 
-		gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-10, 1e-10, 1000, work, &result, &error); 
+		gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); 
 		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
 		pstop=result;
 		L[i]=pgf[condition[i]] + (1-pgf[condition[i]])*(1-ptf[condition[i]])*pstop;
