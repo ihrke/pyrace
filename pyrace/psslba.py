@@ -147,6 +147,9 @@ if __name__=="__main__":
     mod=pSSLBA_modelA(design, start)
 
     mod.plot_model(lims=(0.1,3))
+    pl.figure()
+    mod.plot_pstop()
+    
     pl.show()
     
     print mod.parstring(full=True)

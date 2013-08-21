@@ -267,7 +267,7 @@ class StopTaskRaceModel(RaceModel):
         return ds
 
 
-    def plot_model(self,lims=(0.1,10),SSD=(None,0.2,0.5)):
+    def plot_model(self,lims=(0.1,10),SSD=(None,0.2,0.5), pstop=True, pstop_SSD_lim=(0,1.0)):
         """
         Plot PDF for all accumulators (GO and stop) in each condition.
         """
@@ -300,6 +300,27 @@ class StopTaskRaceModel(RaceModel):
             pl.title(":".join(self.design.condidx(cond)))
             if cond==0:
                 pl.legend()
+
+    def plot_pstop(self,SSD_lims=(0,1.0), npoints=10, subplots=False):
+        """
+        plot probability of successful stopping as a function of SSD.
+        """
+        lw=3
+        a=int(np.sqrt(self.design.nconditions()))
+        b=np.ceil(self.design.nconditions()/a)
+        
+        ssd=np.linspace(SSD_lims[0], SSD_lims[1], npoints)        
+        for cond in range(self.design.nconditions()):
+            if subplots:
+                pl.subplot(a,b,cond)
+            y=[self.dfun_stop(cond, cssd) for cssd in ssd]
+            pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(cond)))
+            pl.xlabel('SSD')
+            pl.ylabel('p(STOP)')
+        if not subplots:
+            pl.legend()
+        
+        
                 
     
     def plot_fit_go(self, dat, lims=(0.1,10), nbins=20):
