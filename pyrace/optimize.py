@@ -124,9 +124,9 @@ if __name__=="__main__":
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
 
-    truepar =pSSLBA_modelA.paramspec(.1, .2, .2,   .5,  .8, 2.0, 1.0, 0.0)
+    truepar =pSSLBA_modelA_paramspec(.1, .2, .2,   .5,  .8, 2.0, 1.0, 0.0)
     print truepar
-    startpar=pSSLBA_modelA.paramspec(.5, .1,  1., 2.0, 1.5, 1.0, 0.5, 0.9)
+    startpar=pSSLBA_modelA_paramspec(.5, .1,  1., 2.0, 1.5, 1.0, 0.5, 0.9)
     print startpar
     mod=pSSLBA_modelA(design, truepar)
     dat=mod.simulate(100, upper_limit=5)

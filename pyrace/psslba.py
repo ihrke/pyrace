@@ -58,10 +58,10 @@ class pSSLBA(StopTaskRaceModel):
 #        LL=np.sum(np.log(np.maximum(L,1e-10)))
         return L
         
-        
+
+pSSLBA_modelA_paramspec=namedtuple('modelpars_pSSLBA_modelA', ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v'])
+
 class pSSLBA_modelA(pSSLBA):
-    paramspec=namedtuple('modelpars_pSSLBA_modelA', ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v'])
-    
     def __init__(self, design, pars=None):
         """
         ster - non-decistion time for all stop-accumulators
@@ -98,7 +98,7 @@ class pSSLBA_modelA(pSSLBA):
         
     def untrans(self, x):
         """reverse the process in trans, i.e., return a dictionary form vector"""
-        pars=pSSLBA_modelA.paramspec(
+        pars=pSSLBA_modelA_paramspec(
             ster=np.exp(x[0]),
             ter=np.exp(x[1]),
             A=np.exp(x[2]),
@@ -112,7 +112,41 @@ class pSSLBA_modelA(pSSLBA):
     def copy(self):
         m=self.__class__(self.design, self.params)
         return m
+
+    def set_params_c(self,pars):
+        """
+        Optional for additional speedup by reducing
+        the overhead of setting the accumulators every time.
+        """
+        self.params=pars
+        nc=self.design.nconditions()
+        nr=self.design.nresponses()
         
+        go_v=np.zeros( nc*nr, dtype=np.float)
+        go_ter=np.zeros_like(go_v)+(pars.ter)
+        go_A=np.zeros_like(go_v)+(pars.A)
+        go_b=np.zeros_like(go_v)+(pars.B+pars.A)
+        go_sv=np.zeros_like(go_v)+(self.sv)
+        
+        idx=0
+
+        # this is the index of the correct response per condition
+        corridx=np.array([self.design.responses.index(self.design.correct_response(ci)) for ci in range(nc)])
+        for resp in range(nr):
+            go_v[(resp*nc)+np.where(corridx==resp)[0]]=pars.V
+            go_v[(resp*nc)+np.where(corridx!=resp)[0]]=pars.v
+                
+        stop_v=np.zeros( nc, dtype=np.float)+(pars.Vs)
+        stop_ter=np.zeros_like(stop_v)+(pars.ster)
+        stop_A=np.zeros_like(stop_v)+(pars.A)
+        stop_b=np.zeros_like(stop_v)+(pars.Bs+pars.A)
+        stop_sv=np.zeros_like(stop_v)+(self.sv)
+        
+        pgf=np.zeros(nc, dtype=np.float)
+        ptf=np.zeros(nc, dtype=np.float)        
+        self.cpars=[go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf]
+        
+    
     def set_params(self, pars):
         self.params=pars
         go_acc=[]
@@ -147,7 +181,7 @@ if __name__=="__main__":
 #    ds=StopTaskDataSet(design,dat2)
     
 #    mod=pSSLBA_modelA(design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
-    start=pSSLBA_modelA.paramspec(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
+    start=pSSLBA_modelA_paramspec(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
     mod=pSSLBA_modelA(design, start)
 
     mod.plot_model(lims=(0.1,3))

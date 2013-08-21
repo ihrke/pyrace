@@ -4,7 +4,7 @@ import pandas as pd
 import scipy
 import sys
 from pyrace import Design, StopTaskDataSet
-from pyrace import LBAAccumulator, pSSLBA, pSSLBA_modelA
+from pyrace import LBAAccumulator, pSSLBA, pSSLBA_modelA, pSSLBA_modelA_paramspec
 
 class testLBA(unittest.TestCase):
     def setUp(self):
@@ -56,10 +56,11 @@ class testpSSLBA(unittest.TestCase):
         assert self.dat.shape[0]==800
         self.dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         self.ds=StopTaskDataSet(self.design,self.dat)
-        self.mod=pSSLBA_modelA(self.design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+        pars=pSSLBA_modelA_paramspec(.2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+        self.mod=pSSLBA_modelA(self.design, pars)
 
     def test_simulate(self):
-        print self.mod.simulate(100).as_dataframe(form='wide')
+        self.mod.simulate(100).as_dataframe(form='wide')
         
     def test_init(self):
         factors=[{'sleepdep':['normal','deprived']},
@@ -70,7 +71,8 @@ class testpSSLBA(unittest.TestCase):
         assert dat.shape[0]==800
         dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         ds=StopTaskDataSet(design,dat)
-        mod=pSSLBA_modelA(design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+        pars=pSSLBA_modelA_paramspec(.2, .15, .2, 1.0, 1.0, 2, 1, 0.5)        
+        mod=pSSLBA_modelA(design, pars)
 
         print mod.parstring(full=True)
         print mod
@@ -92,6 +94,20 @@ class testpSSLBA(unittest.TestCase):
         assert np.isfinite(L)
         print "L=",L
 
+    def test_set_params_c(self):
+        #rpar=np.random.rand(8)
+        rpar=pSSLBA_modelA_paramspec(*list(np.random.rand(8)))
+        self.mod.set_params_c(rpar)
+        cp1=self.mod.cpars
+        self.mod.set_params(rpar)
+        cp2=list(self.mod.get_cpars())
+        parnames=['go_v','go_ter','go_A','go_b','go_sv', 'stop_v','stop_ter','stop_A','stop_b','stop_sv', 'pgf','ptf']
+        ix=0
+        for c1,c2 in zip(cp1,cp2):
+            assert np.all(np.abs(c1-c2)<1e-5), "%i (=parameter %s): %s,%s"%(ix, parnames[ix], str(c1),str(c2))
+            ix+=1
 
+        
+        
 if __name__ == '__main__':
     unittest.main()
