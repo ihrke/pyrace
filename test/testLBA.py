@@ -100,13 +100,24 @@ class testpSSLBA(unittest.TestCase):
         self.mod.set_params_c(rpar)
         cp1=self.mod.cpars
         self.mod.set_params(rpar)
-        cp2=list(self.mod.get_cpars())
+        cp2=self.mod.get_cpars()
         parnames=['go_v','go_ter','go_A','go_b','go_sv', 'stop_v','stop_ter','stop_A','stop_b','stop_sv', 'pgf','ptf']
         ix=0
         for c1,c2 in zip(cp1,cp2):
-            assert np.all(np.abs(c1-c2)<1e-5), "%i (=parameter %s): %s,%s"%(ix, parnames[ix], str(c1),str(c2))
+            assert np.all(np.abs(c1-c2)<1e-10), "%i (=parameter %s): %s,%s"%(ix, parnames[ix], str(c1),str(c2))
             ix+=1
 
+    def test_deviance_precalc(self):
+        rpar=pSSLBA_modelA_paramspec(*list(np.random.rand(8)))
+        self.mod.set_params_c(rpar)
+        L1=self.mod.deviance_precalc(self.ds)
+
+        self.mod.set_params(rpar)
+        L2=self.mod.deviance(self.ds)
+
+        assert abs(L1-L2)<1e-10, "L1,L2=%f, %f"%(L1,L2)
+        
+        
         
         
 if __name__ == '__main__':

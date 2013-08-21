@@ -234,7 +234,7 @@ class StopTaskRaceModel(RaceModel):
         ssdn = np.round(np.sum(pstop)*nsim/float(nssd))
         nstop = nssd*ssdn
         ngo = nsim-(nstop)
-        print "Simulating %i GO and %i STOP trials (%i of each of %i SSDs) (%i overall)"%(ngo, nstop, ssdn, nssd, ngo+nstop)
+#        print "Simulating %i GO and %i STOP trials (%i of each of %i SSDs) (%i overall)"%(ngo, nstop, ssdn, nssd, ngo+nstop)
 
         conditions=[]
         RT=[]

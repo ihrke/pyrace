@@ -17,6 +17,17 @@ def opt_func_deviance( x, mod, data, trace ):
         print score, xp
     return score
 
+def opt_func_deviance_precalc( x, mod, data, trace ):
+    """
+    works only for models which also implements set_params_c()
+    """
+    xp=mod.untrans(x)
+    mod.set_params_c(xp)
+    score=mod.deviance_precalc(data)
+    if trace=='full':
+        print score, xp
+    return score
+
 class Optimizer:
     def __init__(self, model, data, opttype='simplex', optfunc=opt_func_deviance, optfunc_pars=(), noptimizations=1, trace='some',  **kwargs):
         """

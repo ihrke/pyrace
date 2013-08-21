@@ -54,8 +54,17 @@ class pSSLBA(StopTaskRaceModel):
         resp=np.array(dat.response, dtype=np.int32)
         crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
                                      dat.condition.astype(np.int32), resp, dat.RT, dat.SSD, *pars)
-#        print "L(pSSLBA)=",L
-#        LL=np.sum(np.log(np.maximum(L,1e-10)))
+        return L
+
+    def deviance_precalc(self,dat):
+        return -2*np.sum(np.log(np.maximum(self.likelihood_trials_precalc(dat),1e-10)))
+    
+    def likelihood_trials_precalc(self,dat):
+        L=np.zeros(dat.ntrials, dtype=np.double)
+        pars=self.cpars+(L,)
+        resp=np.array(dat.response, dtype=np.int32)
+        crace.sslba_loglikelihood( self.design.nconditions(), self.design.nresponses(), dat.ntrials,
+                                     dat.condition.astype(np.int32), resp, dat.RT, dat.SSD, *pars)
         return L
         
 
@@ -144,7 +153,7 @@ class pSSLBA_modelA(pSSLBA):
         
         pgf=np.zeros(nc, dtype=np.float)
         ptf=np.zeros(nc, dtype=np.float)        
-        self.cpars=[go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf]
+        self.cpars=(go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf)
         
     
     def set_params(self, pars):
