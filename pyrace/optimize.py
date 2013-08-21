@@ -14,7 +14,7 @@ def opt_func_deviance( x, mod, data, trace ):
     return score
 
 class Optimizer:
-    def __init__(self, model, data, opttype='simplex', noptimizations=1, trace='some',  **kwargs):
+    def __init__(self, model, data, opttype='simplex', optfunc=opt_func_deviance, optfunc_pars=(), noptimizations=1, trace='some',  **kwargs):
         """
         trace : one of None, 'some', 'full'
         """
@@ -29,6 +29,8 @@ class Optimizer:
         self.noptimizations=noptimizations
         self.results=[]
         self.result=None
+        self.optfunc=optfunc
+        self.optfunc_pars=optfunc_pars
 
     def optimize(self):
         if self.opttype=='simplex':
@@ -40,7 +42,7 @@ class Optimizer:
             print "> Optimize with %s and options %s"%(method, str(self.opts))
         if self.opttype=='simplex':
             for i in range(self.noptimizations):
-                r=scipy.optimize.fmin(opt_func_deviance, self.x0, (self.model, self.data, self.trace),
+                r=scipy.optimize.fmin(self.optfunc, self.x0, (self.model, self.data, self.trace)+self.optfunc_pars,
                                       **(self.opts))
                 rr={'opttype':self.opttype, 'nopt':i, 'start':self.x0.copy(), 'xopt':r[0],'fopt':r[1],'iter':r[2],'funccalls':r[3]}
                 self.results.append(rr)

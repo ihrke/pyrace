@@ -254,7 +254,7 @@ class StopTaskRaceModel(RaceModel):
             for ssd in SSD:
 #                print " SSD=",ssd
                 SSDs+=[ssd]*ssdn
-                resp,rt=self.sample(ssdn, cond, ssd)
+                resp,rt=self.sample(ssdn, cond, SSD=ssd)
                 RT+=list(rt)
                 response+=list(resp)
 
@@ -301,6 +301,10 @@ class StopTaskRaceModel(RaceModel):
             if cond==0:
                 pl.legend()
 
+
+    def get_pstop_by_ssd(self, cond, SSD):
+        return np.array([self.dfun_stop(cond, cssd) for cssd in SSD], dtype=np.double)
+        
     def plot_pstop(self,SSD_lims=(0,1.0), npoints=10, subplots=False):
         """
         plot probability of successful stopping as a function of SSD.
@@ -313,16 +317,13 @@ class StopTaskRaceModel(RaceModel):
         for cond in range(self.design.nconditions()):
             if subplots:
                 pl.subplot(a,b,cond)
-            y=[self.dfun_stop(cond, cssd) for cssd in ssd]
+            y=self.get_pstop_by_ssd(cond,ssd)
             pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(cond)))
             pl.xlabel('SSD')
             pl.ylabel('p(STOP)')
         if not subplots:
             pl.legend()
         
-        
-                
-    
     def plot_fit_go(self, dat, lims=(0.1,10), nbins=20):
         """
         Plot histogram of GO-trials and the model-solution per condition.
