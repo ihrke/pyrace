@@ -209,7 +209,7 @@ class StopTaskRaceModel(RaceModel):
 
         # STOP trials
         if SSD!=None:
-            stop_rt=self.stop_accumulators[condition].sample(n)
+            stop_rt=SSD+self.stop_accumulators[condition].sample(n)
             # trigger-failures
             tf=stats.binom.rvs(1,self.prob_trigger_fail[condition],size=n).astype(np.bool) # 0/1 for trigger-failures
             winner[(stop_rt<rts) & np.logical_not(tf)]=-1            
@@ -305,20 +305,29 @@ class StopTaskRaceModel(RaceModel):
     def get_pstop_by_ssd(self, cond, SSD):
         return np.array([self.dfun_stop(cond, cssd) for cssd in SSD], dtype=np.double)
         
-    def plot_pstop(self,SSD_lims=(0,1.0), npoints=10, subplots=False):
+    def plot_pstop(self, data=None, SSD_lims=(0,1.0), npoints=10, subplots=False):
         """
         plot probability of successful stopping as a function of SSD.
         """
         lw=3
+        bw=0.01 # bar-width
         a=int(np.sqrt(self.design.nconditions()))
         b=np.ceil(self.design.nconditions()/a)
-        
+
         ssd=np.linspace(SSD_lims[0], SSD_lims[1], npoints)        
         for cond in range(self.design.nconditions()):
             if subplots:
                 pl.subplot(a,b,cond)
+
+            if data:
+                tmp=stats.itemfreq(data.SSD[np.isfinite(data.SSD)])
+                tmp2=[]
+                for val in tmp[:,0]:
+                    tmp2.append( np.sum(data.response[data.SSD==val]<0))
+                pl.bar( tmp[:,0]-bw/2., tmp2/tmp[:,1], width=bw, alpha=.5)
             y=self.get_pstop_by_ssd(cond,ssd)
             pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(cond)))
+            pl.xlim(SSD_lims[0], SSD_lims[1])
             pl.xlabel('SSD')
             pl.ylabel('p(STOP)')
         if not subplots:
