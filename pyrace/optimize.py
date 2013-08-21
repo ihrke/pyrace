@@ -5,15 +5,19 @@ from design import Design
 
 
 
-def opt_func_deviance( x, mod, data ):
+def opt_func_deviance( x, mod, data, trace ):
     xp=mod.untrans(x)
     mod.set_params(xp)
     score=mod.deviance(data)
-#    print score, xp
+    if trace=='full':
+        print score, xp
     return score
 
 class Optimizer:
-    def __init__(self, model, data, opttype='simplex',  **kwargs):
+    def __init__(self, model, data, opttype='simplex', noptimizations=1, trace='some',  **kwargs):
+        """
+        trace : one of None, 'some', 'full'
+        """
         x0pars=model.params
         self.x0=model.trans(x0pars)
         self.model=model
@@ -21,6 +25,10 @@ class Optimizer:
         self.opttype=opttype
         self.opts={}
         self.opts.update(kwargs)
+        self.trace=trace
+        self.noptimizations=noptimizations
+        self.results=[]
+        self.result=None
 
     def optimize(self):
         if self.opttype=='simplex':
@@ -28,29 +36,28 @@ class Optimizer:
         else:
             raise ValueError("don't know optimization method %s"%self.opttype)
 
-        print "Optimize with %s and options %s"%(method, str(self.opts))
+        if self.trace=='some':
+            print "> Optimize with %s and options %s"%(method, str(self.opts))
         if self.opttype=='simplex':
-            r=scipy.optimize.fmin(opt_func_deviance, self.x0, (self.model, self.data),
-                                  **(self.opts))
-
-            self.xopt=r[0]
-            self.fopt=r[1]
-            self.iter=r[2]
-            self.funcalls=r[3]
-        return r
+            for i in range(self.noptimizations):
+                r=scipy.optimize.fmin(opt_func_deviance, self.x0, (self.model, self.data, self.trace),
+                                      **(self.opts))
+                rr={'opttype':self.opttype, 'nopt':i, 'start':self.x0.copy(), 'xopt':r[0],'fopt':r[1],'iter':r[2],'funccalls':r[3]}
+                self.results.append(rr)
+                self.result=rr
+                self.x0=rr['xopt'].copy()
+                if self.trace=='some':
+                    print "> Optimization run %i: Bestscore: "%i,self.get_best_score()
+                    print "> Optimization run %i: Best: "%i,self.get_best()
+                    
+        return self.get_best(), self.get_best_score()
 
     def get_best(self):
-        return self.model.untrans(self.xopt)
+        return self.model.untrans(self.result['xopt'])
 
     def get_best_score(self):
-        return self.fopt
+        return self.result['fopt']
     
-#        return scipy.optimize.minimize( opt_func_deviance, self.x0, (self.model, self.data),
-#                                        method=method, options=self.opts)
-        
-
-from collections import namedtuple
-
 
 if __name__=="__main__":
     factors=[{'sleepdep':['normal','deprived']},
@@ -58,39 +65,28 @@ if __name__=="__main__":
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
 
-    
-    #modelpars=namedtuple('modelpars_pSSLBA_mA', ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v'])
-    
     truepar =pSSLBA_modelA.paramspec(.1, .2, .2,   .5,  .8, 2.0, 1.0, 0.0)
     print truepar
     startpar=pSSLBA_modelA.paramspec(.5, .1,  1., 2.0, 1.5, 1.0, 0.5, 0.9)
     print startpar
     mod=pSSLBA_modelA(design, truepar)
-    dat=mod.simulate(1000, upper_limit=5)
+    dat=mod.simulate(100, upper_limit=5)
 
+    mod.set_params( startpar)
+    opt=Optimizer(mod, dat, noptimizations=5, disp=1, xtol=1.0, ftol=1.0, full_output=1)
+    best,bestscore=opt.optimize()
 
-    nopt=2
-    for iopt in range(nopt):
-        mod.set_params( startpar)
-        opt=Optimizer(mod, dat, disp=1, xtol=1.0, ftol=1.0, full_output=1)
-        res=opt.optimize()
-        best=opt.get_best()
-        print "Opt %i: Bestscore: "%iopt,opt.get_best_score()
-        print "Opt %i: Best: "%iopt,best
-        print "Opt %i: True: "%iopt,truepar
-        print "Opt %i: Diff: "%iopt,np.abs(np.array(best)-np.array(truepar))
-        startpar=best
+    if False:
+        import pylab as pl
+        pl.figure(figsize=(20,8))
+        mod.set_params(best)    
+        mod.plot_fit_go(dat)
 
-    import pylab as pl
-    pl.figure(figsize=(20,8))
-    mod.set_params(best)    
-    mod.plot_fit_go(dat)
+        pl.figure(figsize=(20,8))
+        mod.set_params(truepar)
+        mod.plot_fit_go(dat)
 
-    pl.figure(figsize=(20,8))
-    mod.set_params(truepar)
-    mod.plot_fit_go(dat)
-    
-    pl.show()
+        pl.show()
 
     
 
