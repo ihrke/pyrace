@@ -1,7 +1,7 @@
 import scipy
 import pylab as pl
 from collections import Iterable
-
+from itertools import cycle
 
 from design import *
 from tools import *
@@ -109,25 +109,18 @@ class StopTaskRaceModel(RaceModel):
     def dens_acc_stop(self, t, condition, SSD, nacc):
         """
         # Respond 2nd accumulator (1st response) in stop architecture
-        dfun.1s <- function(t,pl,SSD) {
-          tstop <- pmax(t-pl$ter[1]-SSD,1e-5) 
-          t <- pmax(t-pl$ter[2],1e-5) # doesnt allow a different ter for each accumulator
-          out <- p1(t,A=pl$A[2],b=pl$b[2],v=pl$v[2],sv=pl$sv[2])*
-            (1-c1(tstop,A=pl$A[1],b=pl$b[1],v=pl$v[1],sv=pl$sv[1]))*
-            (1-c1(t,A=pl$A[3],b=pl$b[3],v=pl$v[3],sv=pl$sv[3]))
-          out[!is.finite(out)  | out<0] <- 0
-          out
-        }
 
         equivalent to dfun.1s and dfun.2s
+
+        except, when nacc<0, it returns p_s(1-F_1)(1-F_2)(...)
         """
         goacc=self.go_accumulators[condition]
-        if nacc<0 or nacc>=len(goacc):
+        if nacc>=len(goacc):
             raise ValueError("nacc must be between 0 and %i"%(len(goacc)-1))
         
         stacc=self.stop_accumulators[condition]
         tstop=t-SSD
-        out=(1-stacc.cdf(tstop))
+        out=(1-stacc.cdf(tstop)) if nacc>=0 else stacc.pdf(tstop)
         
         for i,acc in enumerate(goacc):
             if i==nacc:
@@ -273,6 +266,42 @@ class StopTaskRaceModel(RaceModel):
         ds=StopTaskDataSet(self.design, dat, format='dict')
         return ds
 
+
+    def plot_model(self,lims=(0.1,10),SSD=(None,0.2,0.5)):
+        """
+        Plot PDF for all accumulators (GO and stop) in each condition.
+        """
+        go_colors=['blue', 'green', 'yellow', 'magenta', 'cyan']
+        stop_color='red'
+        linestyles=['-', '--', '-.', ':']
+        linecycler = cycle(linestyles)
+        colorcycler=cycle(go_colors)
+
+        lw=3
+        a=int(np.sqrt(self.design.nconditions()))
+        b=np.ceil(self.design.nconditions()/a)
+
+        t=np.linspace(lims[0], lims[1], 1000)
+        for cond in range(self.design.nconditions()):
+            pl.subplot(a,b,cond)
+
+            for ssdi,ssd in enumerate(SSD):
+                lsty=linestyles[ssdi]
+                for ri,resp in enumerate(self.design.responses):
+                    gocol=go_colors[ri]
+                    if ssd==None:
+                        pl.plot(t, self.dens_acc_go(t, cond, ri), color=gocol, linewidth=lw, label='%s'%resp, ls=lsty)
+                    else:
+                        pl.plot(t, self.dens_acc_stop(t,cond,ssd,ri), color=gocol, linewidth=lw, label='%s,SSD=%.2f'%(resp,ssd), ls=lsty)
+                if ssd!=None:
+                    pl.plot(t, self.dens_acc_stop(t, cond, ssd, -1), color=stop_color, linewidth=lw, label='stop (SSD=%.2f)'%ssd, ls=lsty)
+                pl.xlabel('t (s)')
+                pl.ylabel('PDF')
+            pl.title(":".join(self.design.condidx(cond)))
+            if cond==0:
+                pl.legend()
+                
+    
     def plot_fit_go(self, dat, lims=(0.1,10), nbins=20):
         """
         Plot histogram of GO-trials and the model-solution per condition.
@@ -295,8 +324,9 @@ class StopTaskRaceModel(RaceModel):
                     pl.bar(hx, h, width=(hx[1]-hx[0]), alpha=.3, color=colors[ri], label='resp=%s'%resp)
 #                    pl.hist(d, nbins, normed=True, alpha=.3, color=colors[ri], label='resp=%s'%resp)
                 pl.plot(t, self.dens_acc_go(t, cond, ri), color=colors[ri], linewidth=3)
-            pl.legend()
             pl.title(":".join(self.design.condidx(cond)))
+            if cond==0:
+                pl.legend()            
 
     
     def loglikelihood(self,dat):

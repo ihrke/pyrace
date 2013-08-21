@@ -132,19 +132,22 @@ if __name__=="__main__":
     import pylab as pl
 
 
-    factors=[{'sleepdep':['normal','deprived']},
+    factors=[#{'sleepdep':['normal','deprived']},
              {'stimulus':['left', 'right']}]
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
-    dat=pd.read_csv('./data/sleep_stop_onesubj_test.csv')
-    print dat.shape[0]
-    dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
-    dat2=dat#.head(20)
-    ds=StopTaskDataSet(design,dat2)
+#    dat=pd.read_csv('./data/sleep_stop_onesubj_test.csv')
+#    print dat.shape[0]
+#    dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
+#    dat2=dat#.head(20)
+#    ds=StopTaskDataSet(design,dat2)
     
 #    mod=pSSLBA_modelA(design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
-    #start=c(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
-    mod=pSSLBA_modelA(design, .1, .2, .2, .5, .8, 2, 1, 0)
+    start=pSSLBA_modelA.paramspec(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
+    mod=pSSLBA_modelA(design, start)
+
+    mod.plot_model(lims=(0.1,3))
+    pl.show()
     
     print mod.parstring(full=True)
     print mod
