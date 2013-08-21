@@ -2,6 +2,7 @@ import numpy as np
 import scipy
 import pylab as pl
 import multiprocessing as mp
+import copy
 
 from psslba import pSSLBA_modelA
 from design import Design
@@ -58,15 +59,6 @@ class Optimizer:
                     
         return self.get_best(), self.get_best_score()
 
-    def optimize_multiple(self, data, start_points=None):
-        """
-        data : list of datasets which should be separately fit with the same model
-        start_points : parameter set used as starting point for each dataset or None
-        """
-        jobs=[self.pool.apply_async( self.get_sample_fct, (tuple(self.x),)+self.fctargs, self.fctkwargs ) 
-              for i in range(self.nsamples)]
-        res=np.array([job.get() for job in jobs])
-        
 
 
     def plot_convergence(self):
@@ -96,6 +88,36 @@ class Optimizer:
         return self.result['fopt']
     
 
+
+def _run_optim( optimizer ):
+    optimizer.optimize()
+    return optimizer
+
+def optimize_multi(model, data, ncpu=2, start_points=None, optimizer_pars={}):
+    """
+    data : list of datasets which should be separately fit with the same model
+    start_points : parameter set used as starting point for each dataset or None (than
+              model.params is used for all datasets
+
+    returns a list of Optimizer's
+    """
+    pool=mp.Pool(ncpu)
+
+    optimizers=[Optimizer(model.copy(), dat, **optimizer_pars) for dat in data]
+    if start_points!=None and len(start_points)!=len(optimizers):
+       raise ValueError
+    elif start_points!=None:
+       for io,opt in enumerate(optimizers):
+           opt.model.set_params(start_points[io])
+           
+    jobs=[pool.apply_async( _run_optim, (opt,) ) for opt in optimizers]
+    optimizers=[job.get() for job in jobs]
+
+    return optimizers
+        
+
+
+    
 if __name__=="__main__":
     factors=[{'sleepdep':['normal','deprived']},
              {'stimulus':['left', 'right']}]
