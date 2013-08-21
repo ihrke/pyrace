@@ -1,5 +1,8 @@
 import numpy as np
 import scipy
+import pylab as pl
+import multiprocessing as mp
+
 from psslba import pSSLBA_modelA
 from design import Design
 
@@ -20,6 +23,7 @@ class Optimizer:
         """
         x0pars=model.params
         self.x0=model.trans(x0pars)
+        self.initial=self.x0.copy()
         self.model=model
         self.data=data
         self.opttype=opttype
@@ -44,16 +48,47 @@ class Optimizer:
             for i in range(self.noptimizations):
                 r=scipy.optimize.fmin(self.optfunc, self.x0, (self.model, self.data, self.trace)+self.optfunc_pars,
                                       **(self.opts))
-                rr={'opttype':self.opttype, 'nopt':i, 'start':self.x0.copy(), 'xopt':r[0],'fopt':r[1],'iter':r[2],'funccalls':r[3]}
+                rr={'opttype':self.opttype, 'nopt':(i+1), 'start':self.x0.copy(), 'xopt':r[0],'fopt':r[1],'iter':r[2],'funccalls':r[3]}
                 self.results.append(rr)
                 self.result=rr
                 self.x0=rr['xopt'].copy()
                 if self.trace=='some':
-                    print "> Optimization run %i: Bestscore: "%i,self.get_best_score()
-                    print "> Optimization run %i: Best: "%i,self.get_best()
+                    print "> Optimization run %i: Bestscore: "%(i+1),self.get_best_score()
+                    print "> Optimization run %i: Best: "%(i+1),self.get_best()
                     
         return self.get_best(), self.get_best_score()
 
+    def optimize_multiple(self, data, start_points=None):
+        """
+        data : list of datasets which should be separately fit with the same model
+        start_points : parameter set used as starting point for each dataset or None
+        """
+        jobs=[self.pool.apply_async( self.get_sample_fct, (tuple(self.x),)+self.fctargs, self.fctkwargs ) 
+              for i in range(self.nsamples)]
+        res=np.array([job.get() for job in jobs])
+        
+
+
+    def plot_convergence(self):
+        # objective function over noptimizations in repeated optimization
+        pl.subplot(2,1,1)
+        pl.plot( 0, self.optfunc( self.x0, self.model, self.data, self.trace, *(self.optfunc_pars)), 'x',
+                 markersize=10, markeredgewidth=2, color='red')
+        pl.plot( [v['nopt'] for v in self.results], [v['fopt'] for v in self.results], '-o')
+        pl.xlabel('number of optimization run')
+        pl.ylabel('score')
+        pl.xlim(-.1, len(self.results))
+
+        # num iterations
+        pl.subplot(2,1,2)
+        pl.plot( [v['nopt'] for v in self.results], [v['iter'] for v in self.results], '-.', label='niter')
+        pl.plot( [v['nopt'] for v in self.results], [v['funccalls'] for v in self.results], '-o', label='funccalls')
+        pl.legend()
+        pl.xlabel('number of optimization run')
+        pl.ylabel('num')
+        pl.xlim(-.1, len(self.results))
+                
+    
     def get_best(self):
         return self.model.untrans(self.result['xopt'])
 
