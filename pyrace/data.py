@@ -1,7 +1,10 @@
-from tools import *
-from design import Design
 import pandas as pd
 import numpy as np
+import pylab as pl
+import scipy.stats as stats
+
+from tools import *
+from design import Design
 
 class StopTaskDataSet(object):
     """
@@ -21,7 +24,7 @@ class StopTaskDataSet(object):
     * if response==-1 -> miss/successful STOP
     * if condition<0 -> something is wrong with the dataset
     """
-    def __init__(self, design, data=None, format='wide', mapping={'RT':'RT', 'SSD':'SSD', 'response':'response','condition':'condition'}):
+    def __init__(self, design, data=None, name=None, format='wide', mapping={'RT':'RT', 'SSD':'SSD', 'response':'response','condition':'condition'}):
         """
         design : Design 
            description of the experiment
@@ -35,10 +38,16 @@ class StopTaskDataSet(object):
         """
         self.mapping=mapping
         self.design=design
+        self.name=name
         if isinstance(data, dict) or format=='dict':
             self.from_dict(data)
         else:
             self.from_pandas_dataframe(data, format=format)
+
+        self.correct=np.zeros_like(self.condition, dtype=np.int)
+        for cond in range(self.design.nconditions()):
+            corr=self.design.responses.index(self.design.correct_response(cond))
+            self.correct[self.condition==cond]=np.where( self.response[self.condition==cond]==corr,  1, 0)
 
     def from_dict(self, data):
         self.org_data=data
@@ -103,22 +112,28 @@ class StopTaskDataSet(object):
             row=data.irow(i)
             cidx=[row[fac] for fac in self.design.factors]
             self.condition[i]=self.design.condidx(cidx)
-            
+
+    def head(self, n=10, format='wide', conditions_expanded=True):
+        return self.as_dataframe(form=format, conditions_expanded=conditions_expanded).head(n)
+        
     def as_dataframe(self, form='long', conditions_expanded=True):
         if form=='long':
             if conditions_expanded:
                 df=pd.DataFrame({'condition':[":".join(self.design.condidx(c)) for c in self.condition],
                                  'SSD':self.SSD,
                                  'RT':self.RT,
+                                 'correct':self.correct,
                                  'response':self.response})
             else:
                 df=pd.DataFrame({'condition':self.condition,
                                  'SSD':self.SSD,
                                  'RT':self.RT,
+                                 'correct':self.correct,
                                  'response':self.response})
         elif form=='wide':
             df=pd.DataFrame({'SSD':self.SSD,
                              'RT':self.RT,
+                             'correct':self.correct,                             
                              'response':self.response})
             for cidx,col in enumerate(self.design.factors):
                 df[col]=""
@@ -128,6 +143,85 @@ class StopTaskDataSet(object):
             raise ValueError("don't know how to handle format %s"%form)
         return df
 
+    def __repr__(self):
+        r="{cname}(name={dname},ntrials={ntrials})".format(
+            cname=self.__class__.__name__,
+            dname=str(self.name),
+            ntrials=self.ntrials)
+        return r
+
+    def summary(self):
+        """
+        return summary statistics for the dataset
+        """
+        r="RT (all): Min=%.2f, Max=%.2f, Mean=%.2f, Median=%.2f\n"%(np.nanmin(self.RT),
+                                                                    np.nanmax(self.RT),
+                                                                    stats.nanmean(self.RT),
+                                                                    stats.nanmedian(self.RT))
+        for cond in range(self.design.nconditions()):
+            r+="RT ({cond}): Min={minrt}, Max={maxrt}, Mean={maxrt}, Median={medrt}\n".format(
+                cond=":".join(self.design.condidx(cond)),
+                minrt=np.nanmin(self.RT[self.condition==cond]),
+                maxrt=np.nanmax(self.RT[self.condition==cond]),
+                meanrt=stats.nanmean(self.RT[self.condition==cond]),
+                medrt=stats.nanmedian(self.RT[self.condition==cond]))
+
+        r+='errors (all GO): {nerr}/{ntrials} ({errperc:.2f} %)\n'.format(
+            nerr=np.sum(np.logical_not(self.correct[np.isnan(self.SSD)])),
+            ntrials=len(self.correct[np.isnan(self.SSD)]),
+            errperc=np.sum(np.logical_not(self.correct[np.isnan(self.SSD)]))/float(len(self.correct[np.isnan(self.SSD)])))
+        for cond in range(self.design.nconditions()):
+            r+='errors ({cond}): {nerr}/{ntrials} ({errperc:.2f} %)\n'.format(
+                cond=":".join(self.design.condidx(cond)),
+                nerr=np.sum(np.logical_not(self.correct[(self.condition==cond) & np.isnan(self.SSD)])),
+                ntrials=len(self.correct[(self.condition==cond) & np.isnan(self.SSD)]),
+                errperc=np.sum(np.logical_not(self.correct[(self.condition==cond) & np.isnan(self.SSD)]))
+                               /float(len(self.correct[(self.condition==cond) & np.isnan(self.SSD)])))
+                
+            
+        r+='miss GO (all): {nmiss}/{ntrials} ({missperc:.2f} %)\n'.format(
+            nmiss=np.sum(np.isnan(self.RT[np.isnan(self.SSD)])),
+            ntrials=self.ntrials,
+            missperc=100.*np.sum(np.isnan(self.RT[np.isnan(self.SSD)]))/float(self.ntrials)
+            )
+        for cond in range(self.design.nconditions()):
+            r+="miss GO ({cond}): {nmiss}/{ntrials} ({missperc:.2f} %)\n".format(
+                cond=":".join(self.design.condidx(cond)),
+                ntrials=len(self.RT[self.condition==cond]),
+                missperc=100.*np.sum(np.isnan(self.RT[(self.condition==cond) & np.isnan(self.SSD)]))/float(self.ntrials),
+                nmiss=np.sum(np.isnan(self.RT[(self.condition==cond) & (np.isnan(self.SSD))])))
+
+        r+="SSD-distribution\n"
+        a=stats.itemfreq(self.SSD[np.isfinite(self.SSD)])#.astype(np.int)
+        r+= " NUM | "+" ".join(["%7i"%int(i) for i in (a[:,1])]) + "\n"
+        r+= " SSD | "+" ".join(["%7.2f"%(i) for i in (a[:,0])]) +"\n"            
+        return r
+        
+    
+    def plot_ssd(self, counts=False):
+        """plot distribution of SSDs (num samples per SSD)"""
+        a=stats.itemfreq(self.SSD[np.isfinite(self.SSD)])#.astype(np.int)
+        bw=.01
+        if counts==False:
+            a[:,1]/=np.sum(a[:,1])
+        pl.bar(a[:,0]-bw/2.0, a[:,1], width=bw)
+        pl.xlabel('SSD')
+        pl.ylabel('freq')
+        pl.title('data=%s'%(self.name))        
+
+    def plot_pstop_ssd(self, condition='all', count=False):
+        """plot empirical pstop vs. ssd (over all conditions or for a specific one)"""
+        bw=.01        
+        a=stats.itemfreq(self.SSD[np.isfinite(self.SSD)])#.astype(np.int)
+        ssds=a[:,0]
+        nssds=a[:,1].astype(np.int)
+        pstop=[np.sum(np.isnan(self.RT[self.SSD==ssd]))/float(1.0 if count else nssds[i]) for i,ssd in enumerate(ssds)]
+        pl.bar(ssds-bw/2.0, pstop, width=bw)
+        pl.title('data=%s, condition=%s'%(self.name,condition))
+        pl.xlabel('SSD')
+        pl.ylabel('p(STOP)')
+
+    
 if __name__=="__main__":
     factors=[{'sleepdep':['normal','deprived']},
              {'stimulus':['left', 'right']}]
