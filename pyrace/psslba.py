@@ -70,7 +70,10 @@ class pSSLBA(StopTaskRaceModel):
         
 
 class pSSLBA_modelA_paramspec(Parameters):
-    parnames=['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
+    parnames=['ster', 'ter',  'A', 'Bs',  'B', 'Vs', 'V', 'v']
+    lower   =[  1e-5,  1e-5, 1e-5, 1e-5, 1e-5,   -3,  -3,  -3]
+    upper   =[     1,     1,    5,    5,    5,    3,   3,   3]
+        
     
 class pSSLBA_modelA(pSSLBA):
     paramspec=pSSLBA_modelA_paramspec;

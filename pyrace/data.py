@@ -196,31 +196,64 @@ class StopTaskDataSet(object):
         r+= " NUM | "+" ".join(["%7i"%int(i) for i in (a[:,1])]) + "\n"
         r+= " SSD | "+" ".join(["%7.2f"%(i) for i in (a[:,0])]) +"\n"            
         return r
+
+    def get_ssd_dist(self, condition='all'):
+        if condition=='all':
+            cidx=True
+        else:
+            cidx=(self.condition==condition)
+        a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
+        return a
         
     
-    def plot_ssd(self, counts=False):
-        """plot distribution of SSDs (num samples per SSD)"""
-        a=stats.itemfreq(self.SSD[np.isfinite(self.SSD)])#.astype(np.int)
-        bw=.01
+    def plot_ssd(self, condition='all', counts=False, bw=.01):
+        """plot distribution of SSDs (num samples per SSD)
+
+        bw is the barwidth
+        """
+        if condition=='all':
+            cidx=True
+        else:
+            cidx=(self.condition==condition)
+        a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
         if counts==False:
             a[:,1]/=np.sum(a[:,1])
         pl.bar(a[:,0]-bw/2.0, a[:,1], width=bw)
         pl.xlabel('SSD')
         pl.ylabel('freq')
-        pl.title('data=%s'%(self.name))        
+        pl.title('data=%s'%(self.name))
+        if not counts:
+            pl.ylim(0,1) # probs        
 
-    def plot_pstop_ssd(self, condition='all', count=False):
+    def plot_pstop_ssd(self, condition='all', counts=False, bw=.01):
         """plot empirical pstop vs. ssd (over all conditions or for a specific one)"""
-        bw=.01        
-        a=stats.itemfreq(self.SSD[np.isfinite(self.SSD)])#.astype(np.int)
+        if condition=='all':
+            cidx=True
+        else:
+            cidx=(self.condition==condition)
+        a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
         ssds=a[:,0]
         nssds=a[:,1].astype(np.int)
-        pstop=[np.sum(np.isnan(self.RT[self.SSD==ssd]))/float(1.0 if count else nssds[i]) for i,ssd in enumerate(ssds)]
+        pstop=[np.sum(np.isnan(self.RT[cidx & (self.SSD==ssd)]))/float(1.0 if counts else nssds[i]) for i,ssd in enumerate(ssds)]
         pl.bar(ssds-bw/2.0, pstop, width=bw)
-        pl.title('data=%s, condition=%s'%(self.name,condition))
+        pl.title('data=%s, condition=%s'%(self.name,":".join(self.design.condidx(condition)) if condition!='all' else 'all'))
         pl.xlabel('SSD')
         pl.ylabel('p(STOP)')
+        if not counts:
+            pl.ylim(0,1) # probs
 
+    def plot_pstop_ssd_allcond(self, counts=False, bw=.01):
+        nc=self.design.nconditions()
+        for i in range(nc):
+            pl.subplot(1,nc,i)
+            self.plot_pstop_ssd(condition=i, counts=counts, bw=bw)
+
+    def plot_ssd_allcond(self, counts=False, bw=.01):
+        nc=self.design.nconditions()
+        for i in range(nc):
+            pl.subplot(1,nc,i)
+            self.plot_ssd(condition=i, counts=counts, bw=bw)
+            
     
 if __name__=="__main__":
     factors=[{'sleepdep':['normal','deprived']},

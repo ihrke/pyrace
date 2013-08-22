@@ -27,6 +27,8 @@ class RaceModel(object):
 
 class Parameters(object):
     parnames=[]
+    lower   =[]
+    upper   =[]
 
     def __init__(self, *args, **kwargs):
         self.pars={}        
@@ -83,7 +85,17 @@ class Parameters(object):
 
     def __len__(self):
         return len(self.__class__.parnames)
-            
+
+
+    def random(self):
+        """
+        Set the values to random elements within the borders
+        set by lower and upper.
+        """
+        for i,(l,u) in enumerate(zip( self.__class__.lower, self.__class__.upper)):
+            self.__setitem__(i, np.random.uniform( l, u ))
+        
+    
 class StopTaskRaceModel(RaceModel):
     """
     This implements a generic Stop-Signal Task Race Model with the possibility
@@ -277,8 +289,63 @@ class StopTaskRaceModel(RaceModel):
             rts[(stop_rt<rts) & np.logical_not(tf)]=np.nan #stop_rt[stop_rt<rts]
 
         return winner,rts
-        
-    def simulate(self, nsim, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5]), upper_limit=np.infty):
+
+    def simulate_ssd_dist(self, ngo, SSD, upper_limit=np.infty, name=None):
+        """
+        SSD is a (nssd x 2) array where
+            SSD[:,0] are the SSDs and
+            SSD[:,1] are the number of trials desired
+        OR:
+
+        SSD is a nconditions-long list of such (nssd x 2) arrays
+            
+        ngo is the number of go-trials, so that ntrials=ngo+np.sum(SSD[:,1])
+        """
+        if isinstance(SSD, list):
+            if len(SSD)!=self.design.nconditions():
+                raise ValueError('need distribution for each condition')
+            for ssdc in SSD:
+                if ssdc.shape[1]!=2:
+                    raise ValueError(str(ssdc.shape))
+        elif SSD.shape[1]!=2:
+            raise ValueError
+
+
+        conditions=[]
+        RT=[]
+        response=[]
+        SSDs=[]
+
+        for cond in range(self.design.nconditions()):
+            if isinstance(SSD,list):
+                cSSD=SSD[cond]
+            else:
+                cSSD=SSD
+            nsim=int(ngo+np.sum(cSSD[:,1]))                
+            conditions+=[cond]*nsim
+            
+            # go-trials
+            resp,rt=self.sample(ngo, cond, upper_limit=upper_limit)
+            RT+=list(rt)
+            response+=list(resp)
+            SSDs+=[np.nan]*ngo
+
+            # stop-trials
+            for ssd,ssdn in zip(cSSD[:,0], cSSD[:,1].astype(np.int)):
+                SSDs+=[ssd]*ssdn
+                resp,rt=self.sample(ssdn, cond, SSD=ssd)
+                RT+=list(rt)
+                response+=list(resp)
+
+        ## wrap up in StopTaskDataSet
+        dat={'condition':np.array(conditions, dtype=np.int),
+             'RT':np.array(RT, dtype=np.double),
+             'response':np.array(response, dtype=np.int),
+             'SSD':np.array(SSDs, dtype=np.double)}
+        ds=StopTaskDataSet(self.design, dat, format='dict', name=name)
+        return ds
+    
+    def simulate(self, nsim, pstop=.25, SSD=np.array([.1, .2, .3, .4, .5]), upper_limit=np.infty, name=None):
         """Simulate a dataset of nsim*nconditions trials corresponding to self.design.
 
         There will be nsim*nconditions trials, a fraction pstop of which are stop-trials.
@@ -324,7 +391,7 @@ class StopTaskRaceModel(RaceModel):
              'RT':np.array(RT, dtype=np.double),
              'response':np.array(response, dtype=np.int),
              'SSD':np.array(SSDs, dtype=np.double)}
-        ds=StopTaskDataSet(self.design, dat, format='dict')
+        ds=StopTaskDataSet(self.design, dat, format='dict', name=name)
         return ds
 
 
