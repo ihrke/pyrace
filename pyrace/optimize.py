@@ -4,7 +4,7 @@ import pylab as pl
 import multiprocessing as mp
 import copy
 
-from psslba import pSSLBA_modelA
+from psslba import pSSLBA_modelA#, pSSLBA_modelA_paramspec
 from design import Design
 
 
@@ -51,6 +51,7 @@ class Optimizer:
     def optimize(self):
         if self.opttype=='simplex':
             method='Nelder-Mead'
+            self.opts['full_output']=1 ## setting this, because we rely on the results to be present
         else:
             raise ValueError("don't know optimization method %s"%self.opttype)
 
@@ -97,7 +98,6 @@ class Optimizer:
 
     def get_best_score(self):
         return self.result['fopt']
-    
 
 
 def _run_optim( optimizer ):
@@ -120,13 +120,10 @@ def optimize_multi(model, data, ncpu=2, start_points=None, optimizer_pars={}):
     elif start_points!=None:
        for io,opt in enumerate(optimizers):
            opt.model.set_params(start_points[io])
-           
-    jobs=[pool.apply_async( _run_optim, (opt,) ) for opt in optimizers]
-    optimizers=[job.get() for job in jobs]
 
-    return optimizers
-        
+    opts=pool.map( _run_optim, optimizers )
 
+    return opts
 
     
 if __name__=="__main__":
@@ -135,9 +132,9 @@ if __name__=="__main__":
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
 
-    truepar =pSSLBA_modelA_paramspec(.1, .2, .2,   .5,  .8, 2.0, 1.0, 0.0)
+    truepar =pSSLBA_modelA.paramspec(.1, .2, .2,   .5,  .8, 2.0, 1.0, 0.0)
     print truepar
-    startpar=pSSLBA_modelA_paramspec(.5, .1,  1., 2.0, 1.5, 1.0, 0.5, 0.9)
+    startpar=pSSLBA_modelA.paramspec(.5, .1,  1., 2.0, 1.5, 1.0, 0.5, 0.9)
     print startpar
     mod=pSSLBA_modelA(design, truepar)
     dat=mod.simulate(100, upper_limit=5)

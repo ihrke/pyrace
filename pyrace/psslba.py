@@ -68,9 +68,12 @@ class pSSLBA(StopTaskRaceModel):
         return L
         
 
-pSSLBA_modelA_paramspec=namedtuple('modelpars_pSSLBA_modelA', ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v'])
-
+class pSSLBA_modelA_paramspec(Parameters):
+    parnames=['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
+    
 class pSSLBA_modelA(pSSLBA):
+    paramspec=pSSLBA_modelA_paramspec;
+        
     def __init__(self, design, pars=None):
         """
         ster - non-decistion time for all stop-accumulators
@@ -107,7 +110,7 @@ class pSSLBA_modelA(pSSLBA):
         
     def untrans(self, x):
         """reverse the process in trans, i.e., return a dictionary form vector"""
-        pars=pSSLBA_modelA_paramspec(
+        pars=pSSLBA_modelA.paramspec(
             ster=np.exp(x[0]),
             ter=np.exp(x[1]),
             A=np.exp(x[2]),
@@ -154,8 +157,7 @@ class pSSLBA_modelA(pSSLBA):
         pgf=np.zeros(nc, dtype=np.float)
         ptf=np.zeros(nc, dtype=np.float)        
         self.cpars=(go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf)
-        
-    
+
     def set_params(self, pars):
         self.params=pars
         go_acc=[]
@@ -190,7 +192,7 @@ if __name__=="__main__":
 #    ds=StopTaskDataSet(design,dat2)
     
 #    mod=pSSLBA_modelA(design, .2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
-    start=pSSLBA_modelA_paramspec(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
+    start=pSSLBA_modelA.paramspec(ster=.1,ter=.2,A=.2,Bs=.5,B=.8,Vs=2,V=1,v=0)
     mod=pSSLBA_modelA(design, start)
 
     mod.plot_model(lims=(0.1,3))
