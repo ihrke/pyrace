@@ -44,7 +44,14 @@ class Parameters(object):
         r="{cname}({parlist})".format(cname=self.__class__.__name__,
                                       parlist=",".join(["%s=%s"%(k,self.pars[k]) for k in self.__class__.parnames]))
         return r
-            
+
+    def __sub__(self, b):
+        return self.__class__(*list(np.array([self.pars[k] for k in self.__class__.parnames]) \
+                                       - np.array([b.pars[k] for k in b.__class__.parnames])))
+
+    def __abs__(self):
+        return self.__class__(*list(np.abs(np.array([self.pars[k] for k in self.__class__.parnames]))))
+    
     def __getattr__(self, k):
         if k=='pars':
             return self.pars
@@ -94,7 +101,7 @@ class Parameters(object):
         """
         for i,(l,u) in enumerate(zip( self.__class__.lower, self.__class__.upper)):
             self.__setitem__(i, np.random.uniform( l, u ))
-        
+        return self
     
 class StopTaskRaceModel(RaceModel):
     """
