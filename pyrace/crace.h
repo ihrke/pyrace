@@ -11,5 +11,6 @@ double pnormP(double x, double mean, double sd);
 double dnormP(double x, double mean, double sd);
 double lba_pdf(double t, double ter, double A, double v, double sv, double b);
 double lba_cdf(double t, double ter, double A, double v, double sv, double b);
+void init(void);
 
 #endif

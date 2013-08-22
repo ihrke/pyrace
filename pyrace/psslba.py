@@ -46,7 +46,8 @@ class pSSLBA(StopTaskRaceModel):
         
         pgf=np.array( self.prob_go_fail, dtype=np.float)
         ptf=np.array( self.prob_trigger_fail, dtype=np.float)
-        return go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf
+        self.cpars=(go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf)
+        return self.cpars
 
     def likelihood_trials(self,dat):
         L=np.zeros(dat.ntrials, dtype=np.double)
@@ -85,6 +86,7 @@ class pSSLBA_modelA(pSSLBA):
         V   - mean drift for all correct go-accs
         v   - mean drift for all wrong go-accs
         """
+        self.init_cmodule()
         self.design=design
         self.sv=1.0
         self.set_params(pars)

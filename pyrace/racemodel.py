@@ -6,6 +6,7 @@ from itertools import cycle
 from design import *
 from tools import *
 from data import *
+import crace
 
 
 class Accumulator:
@@ -444,3 +445,6 @@ class StopTaskRaceModel(RaceModel):
                         pgf=self.prob_go_fail[cond],
                         ptf=self.prob_trigger_fail[cond])
             return r
+        
+    def init_cmodule(self):
+        crace.init()

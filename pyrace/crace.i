@@ -29,6 +29,7 @@ This is a C-module speeding up some of pyrace's functions.
   $1 = (int*)PyArray_DATA($input);
 }
 
+void init(void);
 
 void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
 								  int *condition, int *response, double *RT, double *SSD, /* data */
