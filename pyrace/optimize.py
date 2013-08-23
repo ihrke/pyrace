@@ -104,15 +104,18 @@ def _run_optim( optimizer ):
     optimizer.optimize()
     return optimizer
 
-def optimize_multi(model, data, ncpu=2, start_points=None, optimizer_pars={}):
+def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, optimizer_pars={}):
     """
     data : list of datasets which should be separately fit with the same model
     start_points : parameter set used as starting point for each dataset or None (than
               model.params is used for all datasets
 
+    pool : multiprocessing.Pool instance; if not given, construct own pool with ncpu cpus
+    
     returns a list of Optimizer's
     """
-    pool=mp.Pool(ncpu)
+    if pool==None:
+        pool=mp.Pool(ncpu)
 
     optimizers=[Optimizer(model.copy(), dat, **optimizer_pars) for dat in data]
     if start_points!=None and len(start_points)!=len(optimizers):
