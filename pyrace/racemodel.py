@@ -299,6 +299,8 @@ class StopTaskRaceModel(RaceModel):
 
     def simulate_ssd_dist(self, ngo, SSD, upper_limit=np.infty, name=None):
         """
+        ngo is the number of go trials OR a list of ngo, one for each condition
+        
         SSD is a (nssd x 2) array where
             SSD[:,0] are the SSDs and
             SSD[:,1] are the number of trials desired
@@ -317,6 +319,9 @@ class StopTaskRaceModel(RaceModel):
         elif SSD.shape[1]!=2:
             raise ValueError
 
+        if isinstance(ngo, list):
+            if len(ngo)!=self.design.nconditions():
+                raise ValueError('need ngo-trials for each condition, ngo=%s'%(str(ngo)))
 
         conditions=[]
         RT=[]
@@ -328,14 +333,18 @@ class StopTaskRaceModel(RaceModel):
                 cSSD=SSD[cond]
             else:
                 cSSD=SSD
-            nsim=int(ngo+np.sum(cSSD[:,1]))                
+            if isinstance(ngo,list):
+                cngo=ngo[cond]
+            else:
+                cngo=ngo
+            nsim=int(cngo+np.sum(cSSD[:,1]))                
             conditions+=[cond]*nsim
             
             # go-trials
-            resp,rt=self.sample(ngo, cond, upper_limit=upper_limit)
+            resp,rt=self.sample(cngo, cond, upper_limit=upper_limit)
             RT+=list(rt)
             response+=list(resp)
-            SSDs+=[np.nan]*ngo
+            SSDs+=[np.nan]*cngo
 
             # stop-trials
             for ssd,ssdn in zip(cSSD[:,0], cSSD[:,1].astype(np.int)):

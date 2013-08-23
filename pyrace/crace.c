@@ -189,7 +189,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 
 		gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); 
 		if(error){
-		  dprintf("ERROR during integration, errcode=%i", error);
+		  dprintf("ERROR during integration, errcode=%i\n", error);
 		}
 		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
 		pstop=result;
