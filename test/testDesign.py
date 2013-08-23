@@ -21,6 +21,12 @@ class testDesign(unittest.TestCase):
 
 
 class testDataSet(unittest.TestCase):
+    def setUp(self):
+        self.factors=[{'sleepdep':['normal','deprived']},
+                      {'stimulus':['left', 'right']}]
+        self.responses=['left','right']
+        self.design=Design(self.factors,self.responses, 'stimulus')
+        
     def test_init(self):
         factors=[{'sleepdep':['normal','deprived']},
                  {'stimulus':['left', 'right']}]
@@ -33,6 +39,19 @@ class testDataSet(unittest.TestCase):
         assert len(ds.RT)==len(ds.condition)
         assert len(ds.SSD)==len(ds.RT)
         assert len(ds.response)==len(ds.RT)
+
+    def test_factorval(self):
+        assert self.design.factorval(0,'sleepdep')=='normal'
+        assert self.design.factorval(0,'stimulus')=='left'
+
+        assert self.design.factorval(1,'sleepdep')=='normal'
+        assert self.design.factorval(1,'stimulus')=='right'
+
+        assert self.design.factorval(2,'sleepdep')=='deprived'
+        assert self.design.factorval(2,'stimulus')=='left'
+
+        assert self.design.factorval(3,'sleepdep')=='deprived'
+        assert self.design.factorval(3,'stimulus')=='right'
 
 
 class testTools(unittest.TestCase):

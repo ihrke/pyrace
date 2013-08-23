@@ -1,7 +1,6 @@
 import numpy as np
 
 from .. import Parameters, pSSLBA, LBAAccumulator
-#import ..crace
 
 
 class pSSLBA_modelB_paramspec(Parameters):
@@ -38,16 +37,23 @@ class pSSLBA_modelB(pSSLBA):
         v   - mean drift for all wrong go-accs
         """
         self.init_cmodule()
+        if 'TUT' not in design.factors:
+            raise ValueError('need TUT-factor for this model')
+        if 'tut' not in design.factor_dict['TUT']:
+            raise ValueError('need tut value in TUT-factor for this model')
+        
         self.design=design
         self.sv=1.0
+        
         self.set_params(pars)
+        
 
         self.set_mixing_probabilities(0,0)
 
     def trans(self, pars):
         """pars is a paramspec
         
-        Returns an array of ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'V', 'v']
+        Returns an array of ['ster', 'ter', 'A', 'Bs', 'B', 'Vs', 'Vtut', 'Vont', 'v']
         in transformed space for the optimizer.
         """
         x=np.zeros(len(self.params), dtype=np.double)*np.nan
@@ -80,9 +86,11 @@ class pSSLBA_modelB(pSSLBA):
         self.params=pars
         go_acc=[]
         for cond in range(self.design.nconditions()):
+            condl=self.design.condidx(cond)
+            V=self.params.Vtut if self.design.factorval(cond, 'TUT')=='tut' else self.params.Vont
             correct=self.design.correct_response(cond)
             go_acc.append([ LBAAccumulator(self.params.ter, self.params.A, 
-                                           self.params.V if resp==correct else self.params.v, 
+                                           V if resp==correct else self.params.v, 
                                            self.sv, self.params.A+self.params.B,
                                            name='go-'+":".join(self.design.condidx(cond))
                                              +'-%s'%('correct' if resp==correct else 'incorrect')) 
@@ -94,3 +102,16 @@ class pSSLBA_modelB(pSSLBA):
                                              self.sv, self.params.A+self.params.Bs ) )
         
         self.set_accumulators(go_acc, stop_acc)
+
+
+if __name__=='__main__':
+    from .. import Design
+    factors=[{'TUT':['tut','on-task']},
+             {'stimulus':['left', 'right']}]
+    responses=['left','right']
+    design=Design(factors,responses, 'stimulus')
+
+    truepar =pSSLBA_modelB.paramspec(ster=.1, ter=.2, A=.2, Bs=.5,  B=.8, Vs=2.0, Vtut=.5, Vont=1.0, v=0.0)
+    mod=pSSLBA_modelB(design, truepar)
+    
+    dat1=mod.simulate(1000)

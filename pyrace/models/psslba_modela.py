@@ -68,10 +68,6 @@ class pSSLBA_modelA(pSSLBA):
             v=x[7])
         return pars
 
-    def copy(self):
-        m=self.__class__(self.design, self.params)
-        return m
-
     def set_params_c(self,pars):
         """
         Optional for additional speedup by reducing

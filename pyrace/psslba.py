@@ -59,6 +59,12 @@ class pSSLBA(StopTaskRaceModel):
 
     def deviance_precalc(self,dat):
         return -2*np.sum(np.log(np.maximum(self.likelihood_trials_precalc(dat),1e-10)))
+
+
+    def copy(self):
+        m=self.__class__(self.design, self.params)
+        return m
+
     
     def likelihood_trials_precalc(self,dat):
         L=np.zeros(dat.ntrials, dtype=np.double)

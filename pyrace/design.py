@@ -25,6 +25,7 @@ class Design:
             its+=fac.items()
         self.factor_dict=dict(its)
         self.factors=[v.keys()[0] for v in factors]
+        self.factors_idx={ v:i for i,v in enumerate(self.factors)}
         l=list(itertools.product( *[v.values()[0] for v in factors]))
         self.factors_to_int={ ":".join([str(e) for e in v]):i for i,v in enumerate(l)}
         self.factors_from_int={ i:[e for e in v] for i,v in enumerate(l)}
@@ -51,7 +52,13 @@ class Design:
         for i in range(self.nconditions()):
             r+= " %i <-> %s\n"%(i,self.factors_from_int[i])
         return r
-    
+
+    def factorval(self, cond, factor):
+        """
+        return value of factor in condition cond
+        """
+        return self.factors_from_int[cond][self.factors_idx[factor]]
+        
     def condidx(self, condition):
         """for an index, return condition string,
            for a list/string return condition index"""
