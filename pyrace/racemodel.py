@@ -108,6 +108,7 @@ class StopTaskRaceModel(RaceModel):
     This implements a generic Stop-Signal Task Race Model with the possibility
     to add a mixture of trials in which the GO or the STOP-signal has been missed.
     """
+    paramspec=Parameters;
     
     def __init__(self, design, go_accumulators, stop_accumulators, 
                  prob_go_fail=1e-6, prob_trigger_fail=1e-6):
@@ -528,6 +529,15 @@ class StopTaskRaceModel(RaceModel):
                         pgf=self.prob_go_fail[cond],
                         ptf=self.prob_trigger_fail[cond])
             return r
+
+    def npars(self):
+        return len(self.params)
+    
+    def AIC(self, dat):
+        return 2*self.npars()-2*self.loglikelihood(dat)
+        
+    def BIC(self, dat):
+        return self.npars()*np.log(dat.ntrials)-2*self.loglikelihood(dat)
         
     def init_cmodule(self):
         crace.init()

@@ -24,7 +24,7 @@ class StopTaskDataSet(object):
     * if response==-1 -> miss/successful STOP
     * if condition<0 -> something is wrong with the dataset
     """
-    def __init__(self, design, data=None, name=None, format='wide', mapping={'RT':'RT', 'SSD':'SSD', 'response':'response','condition':'condition'}):
+    def __init__(self, design, data=None, name=None, format='wide', mapping=None):
         """
         design : Design 
            description of the experiment
@@ -36,7 +36,9 @@ class StopTaskDataSet(object):
            must contain keys "RT", "SSD", 'response' and use the values to index into the
            pandas dataframe.
         """
-        self.mapping=mapping
+        self.mapping={'RT':'RT', 'SSD':'SSD', 'response':'response','condition':'condition'}
+        if mapping!=None:
+            self.mapping.update(mapping)
         self.design=design
         self.name=name
         if isinstance(data, dict) or format=='dict':
