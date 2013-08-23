@@ -4,7 +4,8 @@ import pandas as pd
 import scipy
 import sys
 from pyrace import Design, StopTaskDataSet
-from pyrace import LBAAccumulator, pSSLBA, pSSLBA_modelA, pSSLBA_modelA_paramspec
+from pyrace import LBAAccumulator, pSSLBA
+from pyrace.models.psslba_modela import pSSLBA_modelA
 
 class testLBA(unittest.TestCase):
     def setUp(self):
@@ -56,7 +57,7 @@ class testpSSLBA(unittest.TestCase):
         assert self.dat.shape[0]==800
         self.dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         self.ds=StopTaskDataSet(self.design,self.dat)
-        pars=pSSLBA_modelA_paramspec(.2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
+        pars=pSSLBA_modelA.paramspec(.2, .15, .2, 1.0, 1.0, 2, 1, 0.5)
         self.mod=pSSLBA_modelA(self.design, pars)
 
     def test_simulate(self):
@@ -71,7 +72,7 @@ class testpSSLBA(unittest.TestCase):
         assert dat.shape[0]==800
         dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         ds=StopTaskDataSet(design,dat)
-        pars=pSSLBA_modelA_paramspec(.2, .15, .2, 1.0, 1.0, 2, 1, 0.5)        
+        pars=pSSLBA_modelA.paramspec(.2, .15, .2, 1.0, 1.0, 2, 1, 0.5)        
         mod=pSSLBA_modelA(design, pars)
 
         print mod.parstring(full=True)
@@ -96,7 +97,7 @@ class testpSSLBA(unittest.TestCase):
 
     def test_set_params_c(self):
         #rpar=np.random.rand(8)
-        rpar=pSSLBA_modelA_paramspec(*list(np.random.rand(8)))
+        rpar=pSSLBA_modelA.paramspec(*list(np.random.rand(8)))
         self.mod.set_params_c(rpar)
         cp1=self.mod.cpars
         self.mod.set_params(rpar)
@@ -108,7 +109,7 @@ class testpSSLBA(unittest.TestCase):
             ix+=1
 
     def test_deviance_precalc(self):
-        rpar=pSSLBA_modelA_paramspec(*list(np.random.rand(8)))
+        rpar=pSSLBA_modelA.paramspec(*list(np.random.rand(8)))
         self.mod.set_params_c(rpar)
         L1=self.mod.deviance_precalc(self.ds)
 

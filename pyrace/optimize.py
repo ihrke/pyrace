@@ -4,10 +4,6 @@ import pylab as pl
 import multiprocessing as mp
 import copy
 
-from psslba import pSSLBA_modelA#, pSSLBA_modelA_paramspec
-from design import Design
-
-
 
 def opt_func_deviance( x, mod, data, trace ):
     xp=mod.untrans(x)
@@ -130,6 +126,10 @@ def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, optimizer_
 
     
 if __name__=="__main__":
+    from .models.psslba_modela import pSSLBA_modelA
+    from .design import Design
+
+    
     factors=[{'sleepdep':['normal','deprived']},
              {'stimulus':['left', 'right']}]
     responses=['left','right']

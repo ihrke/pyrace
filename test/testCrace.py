@@ -4,7 +4,8 @@ import pandas as pd
 import scipy
 import sys
 from pyrace import pnormP, dnormP, LBAAccumulator, Design, \
-     StopTaskRaceModel, StopTaskDataSet, pSSLBA_modelA
+     StopTaskRaceModel, StopTaskDataSet
+from pyrace.models.psslba_modela import pSSLBA_modelA
 import pyrace.crace 
 
 class testCRace(unittest.TestCase):
@@ -57,7 +58,8 @@ class testCRace(unittest.TestCase):
         dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         ds=StopTaskDataSet(design,dat)
 
-        mod=pSSLBA_modelA(design, .1, .2, .2, .5, .8, 2, 1, 0)
+        pars=pSSLBA_modelA.paramspec(.1, .2, .2, .5, .8, 2, 1, 0)
+        mod=pSSLBA_modelA(design, pars)
         print mod
 
         Ls=StopTaskRaceModel.likelihood_trials(mod, ds)
@@ -76,7 +78,8 @@ class testCRace(unittest.TestCase):
         dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         ds=StopTaskDataSet(design,dat)
 
-        mod=pSSLBA_modelA(design, .1, .2, .2, .5, .8, 2, 1, 0)
+        pars=pSSLBA_modelA.paramspec(.1, .2, .2, .5, .8, 2, 1, 0)        
+        mod=pSSLBA_modelA(design, pars)
         print mod
 
         Ls=StopTaskRaceModel.deviance(mod, ds)

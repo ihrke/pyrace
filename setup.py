@@ -1,7 +1,7 @@
 #
 # ----------- setup.py
 #
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 import numpy as np
 import sys, os
 
@@ -37,7 +37,7 @@ def gsl_get_libraries():
 
 setup(
     name="pyrace",
-    packages=["pyrace"],
+    packages=find_packages(),#["pyrace"],
     author="Matthias Mittner",
     author_email="mittner@uva.nl",
     ext_modules=[Extension("_crace",

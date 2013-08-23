@@ -153,6 +153,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
   /* setup for numerical integration of pstop */
   gsl_integration_workspace * work =gsl_integration_workspace_alloc (1000);
   double result, error;
+  int errcode;
   int neval;
   gsl_function F;
   F.function = &pstop_integrate;
@@ -187,9 +188,9 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 		params.ssv =(stop_sv [condition[i]]);
 		params.SSD = SSD[i];
 
-		gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); 
-		if(error){
-		  dprintf("ERROR during integration, errcode=%i\n", error);
+		errcode=gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); 
+		if(errcode){
+		  dprintf("ERROR during integration, errcode=%i, abserr=%f\n", errcode, error);
 		}
 		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
 		pstop=result;
