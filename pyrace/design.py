@@ -50,9 +50,9 @@ class Design:
             r+=" %s: %s\n"%(str(k),str(v))
         r+=" "+"-"*20+"\n"
         for i in range(self.nconditions()):
-            r+= " %i <-> %s\n"%(i,self.factors_from_int[i])
-        for i in range(self.responses()):
-            r+= " %i <-> %s\n"%(i,self.responses[i])
+            r+= " condition %i <-> %s\n"%(i,self.factors_from_int[i])
+        for i in range(self.nresponses()):
+            r+= " response  %i <-> %s\n"%(i,self.responses[i])
         return r
 
     def factorval(self, cond, factor):
