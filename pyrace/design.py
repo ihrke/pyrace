@@ -51,6 +51,8 @@ class Design:
         r+=" "+"-"*20+"\n"
         for i in range(self.nconditions()):
             r+= " %i <-> %s\n"%(i,self.factors_from_int[i])
+        for i in range(self.responses()):
+            r+= " %i <-> %s\n"%(i,self.responses[i])
         return r
 
     def factorval(self, cond, factor):

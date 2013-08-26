@@ -5,3 +5,4 @@ from .lba import *
 from .psslba import *
 from .racemodel import *
 from .optimize import *
+from .param import *
