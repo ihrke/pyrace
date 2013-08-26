@@ -44,10 +44,9 @@ class pSSLBA_modelB(pSSLBA):
         
         self.design=design
         self.sv=1.0
-        
+        if pars!=None:
+            self.set_params(pars)
         self.set_params(pars)
-        
-
         self.set_mixing_probabilities(0,0)
 
     def trans(self, pars):

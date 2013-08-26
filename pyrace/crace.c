@@ -133,13 +133,24 @@ double pstop_integrate2(double t, double *gv, double *gter, double *gA, double *
 }
 
 /** Returns raw likelihoods for each trial in pointer L.
+
+        # pgf  : probability of a go failure
+        # ptf  : probability of a trigger failure
+        # pstop: probability of a sucessful stop given no go or trigger fail 
+        # Lg(t): likelihood of response at time t on go trial given no go fail
+        # Ls(t): likelihood of response at time t on stop trial given no go or trigger fail
+        # 
+        # GO(NA)  : pgf
+        # STOP(NA): pgf + (1-pgf)*(1-ptf)*pstop
+        # GO(t)   : (1-pgf)*Lg(t)
+        # STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
  */
 void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
 								  int *condition, int *response, double *RT, double *SSD, /* data */
 								  double *go_v, double *go_ter, double *go_A, double *go_b, double *go_sv,
 								  double *stop_v, double *stop_ter, double *stop_A, double *stop_b, double *stop_sv,
 								  double *pgf, double *ptf, double *L ){
-
+  
   /*
   dprintf("nconditions=%i, nres=%i, ntri=%i\n", nconditions, nresponses, ntrials);
   for( i=0; i<ntrials; i++ ){
@@ -163,7 +174,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
   params.stride=nconditions;
   double pstop;
   
-  double dens;
+  double dens, densgo, densstop, tmp;
 
   for( i=0; i<ntrials; i++ ){ /* calc L for each datapoint */
 	 /* failed GO */
@@ -190,7 +201,7 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 
 		errcode=gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); 
 		if(errcode){
-		  dprintf("ERROR during integration, errcode=%i, abserr=%f\n", errcode, error);
+		  dprintf("ERROR during integration, errcode=%i, abserr=%f, result=%f\n", errcode, error, result);
 		}
 		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
 		pstop=result;
@@ -216,23 +227,30 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 		L[i]=(1-pgf[condition[i]])*dens;
 	 }
 
-	 /* STOP-trials with response */
+	 /* STOP-trials with response 
+		 STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
+	  */
 	 else if( response[i]>=0 && isfinite(SSD[i]) ){
 		idx=condition[i];
-		dens=(1-lba_cdf(RT[i]-SSD[i], stop_ter[idx], stop_A[idx], stop_v[idx], stop_sv[idx], stop_b[idx]));
+		densgo=1.0;
+		densstop=(1-lba_cdf(RT[i]-SSD[i], stop_ter[idx], stop_A[idx], stop_v[idx], stop_sv[idx], stop_b[idx]));
 
 		for( j=0; j<nresponses; j++ ){
 		  idx=condition[i]+(j*nconditions);
 		  if( j==response[i] ){
 			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
-			 dens*=lba_pdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]);
+			 tmp=lba_pdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]);
+			 densstop*=tmp;
+			 densgo*=tmp;
 		  } else {
 			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
-			 dens*=(1-lba_cdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]));
+			 tmp=(1-lba_cdf(RT[i], go_ter[idx], go_A[idx], go_v[idx], go_sv[idx], go_b[idx]));
+			 densstop*=tmp;
+			 densgo*=tmp;
 		  }
 		}
 		
-		L[i]=(1-pgf[condition[i]])*(ptf[condition[i]]+(1-ptf[condition[i]])*dens);
+		L[i]=(1-pgf[condition[i]])*(ptf[condition[i]]*densgo+(1-ptf[condition[i]])*densstop);
 	 }
 
 	 /* invalid -> error message */

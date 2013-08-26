@@ -155,7 +155,19 @@ class StopTaskRaceModel(RaceModel):
         return np.maximum( np.minimum( pstop,1), 0) # protect from numerical errors
         
     def likelihood_trials(self, dat):
-        """generic and slow implementation (overwrite in child for performance)"""
+        """generic and slow implementation (overwrite in child for performance)
+
+        # pgf  : probability of a go failure
+        # ptf  : probability of a trigger failure
+        # pstop: probability of a sucessful stop given no go or trigger fail 
+        # Lg(t): likelihood of response at time t on go trial given no go fail
+        # Ls(t): likelihood of response at time t on stop trial given no go or trigger fail
+        # 
+        # GO(NA)  : pgf
+        # STOP(NA): pgf + (1-pgf)*(1-ptf)*pstop
+        # GO(t)   : (1-pgf)*Lg(t)
+        # STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
+        """
         if not isinstance(dat,StopTaskDataSet):
             raise ValueError('data needs to be a StopTaskDataSet')
             
@@ -169,7 +181,7 @@ class StopTaskRaceModel(RaceModel):
             idx=(dat.condition==cond) & (np.isnan(dat.SSD)) & (dat.response<0)
             L[idx]=pgf
             
-            # Sucessful stops
+            # Sucessful stops: STOP(NA): pgf + (1-pgf)*(1-ptf)*pstop
             #if np.any(np.isfinite(dat.SSD))
             cssds=dat.SSD[(np.isfinite(dat.SSD)) & (dat.condition==cond) & (dat.response<0)]
             if len(cssds)>0:
@@ -182,17 +194,17 @@ class StopTaskRaceModel(RaceModel):
             # trials with responses
             for resp in range(self.design.nresponses()):
                 
-                # Go-Responses
+                # Go-Responses: GO(t)   : (1-pgf)*Lg(t)
                 idx=(dat.condition==cond) & (dat.response==resp) & (np.isnan(dat.SSD))
                 if len(idx)>0:
                     L[idx]=(1-pgf)*self.dens_acc_go( dat.RT[idx], cond, resp )
                 
-                # STOP trials with a response
+                # STOP trials with a response: STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
                 idx=(dat.condition==cond) & (dat.response==resp) & (np.isfinite(dat.SSD))
                 rts=dat.RT[idx]
                 ssds=dat.SSD[idx]
                 if len(rts)>0:
-                    L[idx]=(1-pgf)*(ptf+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
+                    L[idx]=(1-pgf)*(ptf*self.dens_acc_go(rts, cond, resp)+(1-ptf)*self.dens_acc_stop(rts, cond, ssds, resp))
         return L
 
     def sample(self, n, condition, SSD=None, upper_limit=np.infty):

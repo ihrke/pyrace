@@ -34,7 +34,8 @@ class pSSLBA_modelA(pSSLBA):
         self.init_cmodule()
         self.design=design
         self.sv=1.0
-        self.set_params(pars)
+        if pars!=None:
+            self.set_params(pars)
 
         self.set_mixing_probabilities(0,0)
 

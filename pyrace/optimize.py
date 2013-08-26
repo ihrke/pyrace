@@ -29,9 +29,6 @@ class Optimizer:
         """
         trace : one of None, 'some', 'full'
         """
-        x0pars=model.params
-        self.x0=model.trans(x0pars)
-        self.initial=self.x0.copy()
         self.model=model
         self.data=data
         self.opttype=opttype
@@ -43,7 +40,14 @@ class Optimizer:
         self.result=None
         self.optfunc=optfunc
         self.optfunc_pars=optfunc_pars
+        self.set_startpoint(model.params)        
 
+    def set_startpoint(self, pars):
+        """pars is a model's paramspec"""
+        self.x0pars=pars
+        self.x0=self.model.trans(self.x0pars)
+        self.initial=self.x0.copy()
+        
     def optimize(self):
         if self.opttype=='simplex':
             method='Nelder-Mead'
@@ -118,7 +122,7 @@ def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, optimizer_
        raise ValueError
     elif start_points!=None:
        for io,opt in enumerate(optimizers):
-           opt.model.set_params(start_points[io])
+           optimizers[io].set_startpoint(start_points[io])
 
     opts=pool.map( _run_optim, optimizers )
 
