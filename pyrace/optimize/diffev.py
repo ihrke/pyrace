@@ -17,8 +17,9 @@ def _cont_chunks(l, n):
 def _flatten(l):
     return [item for sublist in l for item in sublist]
 
-
-def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, save_stats=None ):
+def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_max=1000,
+                      nxtol=10, xtol=None, ftol=None, verbosity=0,
+                      trace_stats=None, save_stats=None):
     """
     Differential Evolution DE/rand/1/bin according to
     the Storn and Price paper (1997, Journal of Global Optimization).
@@ -30,8 +31,13 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, sav
 
     save_stats : int or None; at which iterations, should stats be saved
 
+    ftol : computed from one population to the next with respect to the mean
+           score of the population
 
-    Returns: (final pop, final score, stats)
+    xtol : computed for best member which should change no more than xtol over nxtol generations
+    nxtol : int
+
+    Returns: (final pop, final score, stats)    
     """
     stopcrit=False
     npop=len(pop_ini)
@@ -49,6 +55,10 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, sav
            'max':[],
            'mean':[],
            'median':[]}
+
+    best=[None for _ in range(nxtol)] # keep best individuals for nxtol generations
+    prevmean=np.nan
+    nxtoli=0
     while not stopcrit:
         # build candidate pop        
         pop_new=[]
@@ -64,13 +74,17 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, sav
                 j=(j+1) % D
             pop_new.append(cand)
 
-        # update scores
+        # update score
         for i,cand in enumerate(pop_new):
             cscore=objective( cand, *objargs )
             if cscore<=score[i]:
                 score[i]=cscore
                 cpop[i]=cand
 
+        bestix=np.argmin(score)
+        best[nxtoli]=cpop[bestix]
+        nxtoli = (nxtoli+1) % nxtol
+        
         # save stats
         if save_stats!=None and niter % save_stats == 0:
             stats['generation'].append(niter)
@@ -79,28 +93,50 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, sav
             stats['mean'].append(np.mean(score))
             stats['median'].append(np.median(score))
 
-        if trace_stats!=None and niter % trace_stats == 0:
+        if (trace_stats!=None and niter % trace_stats == 0) or (verbosity==100):
             print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
                                                                         stats['median'][-1],
                                                                         stats['min'][-1],stats['max'][-1])
-            
         niter+=1
-        if niter>=gen_max:
-            stopcrit=True
 
-    return cpop, score, stats if save_stats!=None else None
+        ## convergence criteria
+        if niter>gen_min:
+            if niter>=gen_max:
+                if verbosity>=10:
+                    print "DE(%i) reached gen_max=%i"%(niter,gen_max)
+                stopcrit=True
+            if ftol!=None and np.abs(prevmean-np.mean(score))<ftol:
+                if verbosity>=10:
+                    print "DE(%i) reached ftol=%f"%(niter,ftol)
+                stopcrit=True
+            if xtol!=None and np.all(np.array([np.linalg.norm( best[0]-cur) for cur in best[1:] if cur!=None])<=xtol):
+                if verbosity>=10:
+                    print "DE(%i) reached xtol=%f for nxtol=%i"%(niter,xtol,nxtol)
+                stopcrit=True
 
+        prevmean=np.mean(score)
+                
+    return cpop, score, stats if save_stats!=None else None, niter
+    
 
 def _eval_pop( candidates, objective, objargs ):
     res=[objective(cand, *objargs) for cand in candidates]
     return res
 
-def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, trace_stats=None, save_stats=None, pool=None, ncpu=4 ):
+def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_max=1000,
+                      nxtol=10, xtol=None, ftol=None, verbosity=0,
+                      trace_stats=None, save_stats=None, pool=None, ncpu=4 ):
     """
     same as de_rand_1_bin except that each population is evaluated in parallel.
 
     pool : multiprocessing.Pool instance or None (own pool is created)
     ncpu : number of cores (not used if pool!=None)
+
+    ftol : computed from one population to the next with respect to the mean
+           score of the population
+
+    xtol : computed for best member which should change no more than xtol over nxtol generations
+    nxtol : int    
     """
     if pool==None:
         pool=mp.Pool(ncpu)
@@ -123,6 +159,10 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, 
            'max':[],
            'mean':[],
            'median':[]}
+
+    best=[None for _ in range(nxtol)] # keep best individuals for nxtol generations
+    prevmean=np.nan
+    nxtoli=0
     while not stopcrit:
         # build candidate pop        
         pop_new=[]
@@ -146,6 +186,10 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, 
         score=np.where( new_score<=score, new_score, score)
         cpop=[pop_new[i] if new_score[i]<=score[i] else cpop[i] for i in range(npop)]
 
+        bestix=np.argmin(score)
+        best[nxtoli]=cpop[bestix]
+        nxtoli = (nxtoli+1) % nxtol
+        
         # save stats
         if save_stats!=None and niter % save_stats == 0:
             stats['generation'].append(niter)
@@ -154,20 +198,43 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, 
             stats['mean'].append(np.mean(score))
             stats['median'].append(np.median(score))
 
-        if trace_stats!=None and niter % trace_stats == 0:
+        if (trace_stats!=None and niter % trace_stats == 0) or (verbosity==100):
             print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
                                                                         stats['median'][-1],
                                                                         stats['min'][-1],stats['max'][-1])
         niter+=1
-        if niter>=gen_max:
-            stopcrit=True
 
-    return cpop, score, stats if save_stats!=None else None
+        ## convergence criteria
+        if niter>gen_min:
+            if niter>=gen_max:
+                if verbosity>=10:
+                    print "DE(%i) reached gen_max=%i"%(niter,gen_max)
+                stopcrit=True
+            if ftol!=None and np.abs(prevmean-np.mean(score))<ftol:
+                if verbosity>=10:
+                    print "DE(%i) reached ftol=%f"%(niter,ftol)
+                stopcrit=True
+            if xtol!=None and np.all(np.array([np.linalg.norm( best[0]-cur) for cur in best[1:] if cur!=None])<=xtol):
+                if verbosity>=10:
+                    print "DE(%i) reached xtol=%f for nxtol=%i"%(niter,xtol,nxtol)
+                stopcrit=True
+
+        prevmean=np.mean(score)
+                
+    return cpop, score, stats if save_stats!=None else None, niter
     
 
 class DEOptimizer(Optimizer):
     """Differential Evolution: DE/rand/1/bin"""
-    def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), save_stats=None, pop_size=25, F=.5, CR=0, trace_stats=None, gen_max=1000, **kwargs):
+    def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), save_stats=None,
+                 xtol=None, ftol=None, nxtol=10,
+                 pop_size=25, F=.5, CR=0, trace_stats=None, gen_max=1000, **kwargs):
+        """
+        xtol, ftol, nxtol : convergence parameters
+        pop_size : int; size of population
+        F, CR : DE parameters (see paper)
+        gen_max : maximum number of generations (only when no convergence)
+        """
         self.set_general_opts(**kwargs)
         self.opttype=self.__class__.__name__
         
@@ -177,7 +244,8 @@ class DEOptimizer(Optimizer):
         self.optfunc=optfunc
         self.optfunc_pars=optfunc_pars
         self.pop_size=pop_size
-        self.opts.update({"F":F, 'CR':CR, "gen_max":gen_max, 'save_stats':save_stats, 'trace_stats':trace_stats})
+        self.opts.update({"F":F, 'CR':CR, "gen_max":gen_max, 'save_stats':save_stats, 'trace_stats':trace_stats,
+                          'xtol':xtol, 'ftol':ftol, 'nxtol':nxtol})
 
     def optimize(self):
         if self.trace>=10:
@@ -186,13 +254,14 @@ class DEOptimizer(Optimizer):
         for i in range(self.noptimizations):
             pop_ini=[self.model.trans(self.model.paramspec().random()) for _ in range(self.pop_size)]
             if self.pool!=None:
-                final_pop, score, stats=de_rand_1_bin_mp(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
-                                        pool=self.pool, **(self.opts))
+                final_pop, score, stats, ngen=de_rand_1_bin_mp(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
+                                        pool=self.pool, verbosity=self.trace, **(self.opts))
             else:
-                final_pop, score, stats=de_rand_1_bin(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,**(self.opts))
+                final_pop, score, stats, ngen=de_rand_1_bin(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
+                                                      verbosity=self.trace, **(self.opts))
             idx=np.argsort(score)
             rr={'opttype':self.opttype, 'nopt':(i+1), 'xopt':final_pop[idx[0]],'fopt':score[idx[0]],
-                'iter':self.opts['gen_max'],'funccalls':self.opts['gen_max']*self.pop_size, 'stats':stats}
+                'iter':ngen,'funccalls':ngen*self.pop_size, 'stats':stats}
             self.results.append(rr)
             self.result=rr
             self.x0=rr['xopt'].copy()
