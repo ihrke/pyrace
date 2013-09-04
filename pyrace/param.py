@@ -37,6 +37,9 @@ class Parameters(object):
 
     def __setstate__(self,state):
         self.__dict__=state
+
+    def __getstate__(self):
+        return self.__dict__
         
     def __setattr__(self, k, v):
         if k=='__dict__':
@@ -69,6 +72,18 @@ class Parameters(object):
         return len(self.__class__.parnames)
 
 
+    def in_range(self, pars=None):
+        """
+        return whether or not a specific setting of the parameters are
+        in range or not. if pars==None, use current setting.
+        """
+        if pars==None:
+            pars=self
+        for i,(l,u) in enumerate(zip( self.__class__.lower, self.__class__.upper)):
+           if pars[i]<l or pars[i]>u:
+               return False
+        return True 
+        
     def random(self):
         """
         Set the values to random elements within the borders
