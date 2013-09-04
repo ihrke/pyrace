@@ -10,7 +10,7 @@ def opt_func_deviance( x, mod, data, trace ):
     xp=mod.untrans(x)
     mod.set_params(xp)
     score=mod.deviance(data)
-    if trace=='full':
+    if trace==100:
         print score, xp
     return score
 
@@ -21,7 +21,7 @@ def opt_func_deviance_precalc( x, mod, data, trace ):
     xp=mod.untrans(x)
     mod.set_params_c(xp)
     score=mod.deviance_precalc(data)
-    if trace=='full':
+    if trace==100:
         print score, xp
     return score
 
@@ -101,6 +101,11 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, sav
             stats['max'].append(np.max(score))
             stats['mean'].append(np.mean(score))
             stats['median'].append(np.median(score))
+
+        if trace_stats!=None and niter % trace_stats == 0:
+            print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
+                                                                        stats['median'][-1],
+                                                                        stats['min'][-1],stats['max'][-1])
             
         niter+=1
         if niter>=gen_max:
@@ -113,7 +118,7 @@ def _eval_pop( candidates, objective, objargs ):
     res=[objective(cand, *objargs) for cand in candidates]
     return res
 
-def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, save_stats=None, pool=None, ncpu=4 ):
+def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, trace_stats=None, save_stats=None, pool=None, ncpu=4 ):
     """
     same as de_rand_1_bin except that each population is evaluated in parallel.
 
@@ -171,7 +176,11 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, 
             stats['max'].append(np.max(score))
             stats['mean'].append(np.mean(score))
             stats['median'].append(np.median(score))
-            
+
+        if trace_stats!=None and niter % trace_stats == 0:
+            print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
+                                                                        stats['median'][-1],
+                                                                        stats['min'][-1],stats['max'][-1])
         niter+=1
         if niter>=gen_max:
             stopcrit=True
@@ -179,58 +188,41 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, 
     return cpop, score, stats if save_stats!=None else None
     
 
-
+        
 
 class Optimizer:
-    def __init__(self, model, data, opttype='simplex', optfunc=opt_func_deviance, optfunc_pars=(), noptimizations=1, trace='some',  **kwargs):
+    def set_general_opts( self, noptimizations=1, trace=10, pool=None, ncpu=None, **kwargs ):
         """
-        trace : one of None, 'some', 'full'
-        """
-        self.model=model
-        self.data=data
-        self.opttype=opttype
-        self.opts={}
-        self.opts.update(kwargs)
+        trace : int; on a scale from 0-100 verbosity (no output to max output)
+        
+        For optimizers that support multicore within dataset
+        (for cross-dataset parallelization, call optimize_multi):
+        
+        pool : multiprocessing.Pool instance or None
+        ncpu : int or None
+        """    
         self.trace=trace
         self.noptimizations=noptimizations
+        self.opts={}
+        self.opts.update(kwargs)
         self.results=[]
         self.result=None
-        self.optfunc=optfunc
-        self.optfunc_pars=optfunc_pars
-        self.set_startpoint(model.params)        
-
-    def set_startpoint(self, pars):
-        """pars is a model's paramspec"""
-        self.x0pars=pars
-        self.x0=self.model.trans(self.x0pars)
-        self.initial=self.x0.copy()
+        if pool!=None:
+            self.pool=pool
+            self.ncpu=pool._processes
+        else:
+            if ncpu!=None and ncpu>1:
+                self.pool=mp.Pool(ncpu)
+                self.ncpu=ncpu
+            else:
+                self.pool=None
+                self.ncpu=None
         
     def optimize(self):
-        if self.opttype=='simplex':
-            method='Nelder-Mead'
-            self.opts['full_output']=1 ## setting this, because we rely on the results to be present
-        else:
-            raise ValueError("don't know optimization method %s"%self.opttype)
-
-        if self.trace=='some':
-            print "> Optimize with %s and options %s"%(method, str(self.opts))
-        if self.opttype=='simplex':
-            for i in range(self.noptimizations):
-                r=scipy.optimize.fmin(self.optfunc, self.x0, (self.model, self.data, self.trace)+self.optfunc_pars,
-                                      **(self.opts))
-                rr={'opttype':self.opttype, 'nopt':(i+1), 'start':self.x0.copy(), 'xopt':r[0],'fopt':r[1],'iter':r[2],'funccalls':r[3]}
-                self.results.append(rr)
-                self.result=rr
-                self.x0=rr['xopt'].copy()
-                if self.trace=='some':
-                    print "> Optimization run %i: Bestscore: "%(i+1),self.get_best_score()
-                    print "> Optimization run %i: Best: "%(i+1),self.get_best()
-                    
-        return self.get_best(), self.get_best_score()
+        raise NotImplementedError
 
 
-
-    def plot_convergence(self):
+    def plot_convergence_nopt(self):
         # objective function over noptimizations in repeated optimization
         pl.subplot(2,1,1)
         pl.plot( 0, self.optfunc( self.x0, self.model, self.data, self.trace, *(self.optfunc_pars)), 'x',
@@ -257,8 +249,88 @@ class Optimizer:
         return self.result['fopt']
 
 
+class SimplexOptimizer(Optimizer):
+    """Nelder-Mead Simplex"""
+    def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), **kwargs):
+        self.set_general_opts(**kwargs)
+        self.opttype=self.__class__.__name__
+        
+        self.model=model
+        self.data=data
 
+        self.optfunc=optfunc
+        self.optfunc_pars=optfunc_pars
+        self.set_startpoint(model.params)
 
+    def set_startpoint(self, pars):
+        """pars is a model's paramspec"""
+        self.x0pars=pars
+        self.x0=self.model.trans(self.x0pars)
+        self.initial=self.x0.copy()
+
+    def optimize(self):
+        if self.trace>=10:
+            print "> Optimize with %s and options %s"%(self.opttype, str(self.opts))
+
+        for i in range(self.noptimizations):
+            r=scipy.optimize.fmin(self.optfunc, self.x0, (self.model, self.data, self.trace)+self.optfunc_pars,
+                                  **(self.opts))
+            rr={'opttype':self.opttype, 'nopt':(i+1), 'start':self.x0.copy(), 'xopt':r[0],'fopt':r[1],'iter':r[2],'funccalls':r[3]}
+            self.results.append(rr)
+            self.result=rr
+            self.x0=rr['xopt'].copy()
+            if self.trace>=10:
+                print "> Optimization run %i: Bestscore: "%(i+1),self.get_best_score()
+                print "> Optimization run %i: Best: "%(i+1),self.get_best()
+        
+        return self.get_best(), self.get_best_score()
+
+class DEOptimizer(Optimizer):
+    """Differential Evolution: DE/rand/1/bin"""
+    def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), save_stats=None, pop_size=25, F=.5, CR=0, trace_stats=None, gen_max=1000, **kwargs):
+        self.set_general_opts(**kwargs)
+        self.opttype=self.__class__.__name__
+        
+        self.model=model
+        self.data=data
+
+        self.optfunc=optfunc
+        self.optfunc_pars=optfunc_pars
+        self.pop_size=pop_size
+        self.opts.update({"F":F, 'CR':CR, "gen_max":gen_max, 'save_stats':save_stats, 'trace_stats':trace_stats})
+
+    def optimize(self):
+        if self.trace>=10:
+            print "> Optimize with %s and options %s"%(self.opttype, str(self.opts))
+
+        for i in range(self.noptimizations):
+            pop_ini=[self.model.trans(self.model.paramspec().random()) for _ in range(self.pop_size)]
+            if self.pool!=None:
+                final_pop, score, stats=de_rand_1_bin_mp(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
+                                        pool=self.pool, **(self.opts))
+            else:
+                final_pop, score, stats=de_rand_1_bin(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,**(self.opts))
+            idx=np.argsort(score)
+            rr={'opttype':self.opttype, 'nopt':(i+1), 'xopt':final_pop[idx[0]],'fopt':score[idx[0]],
+                'iter':self.opts['gen_max'],'funccalls':self.opts['gen_max']*self.pop_size, 'stats':stats}
+            self.results.append(rr)
+            self.result=rr
+            self.x0=rr['xopt'].copy()
+            if self.trace>=10:
+                print "> Optimization run %i: Bestscore: "%(i+1),self.get_best_score()
+                print "> Optimization run %i: Best: "%(i+1),self.get_best()
+        
+        return self.get_best(), self.get_best_score()
+
+    def plot_stats(self):
+        stats=self.result['stats']
+        pl.plot( stats['generation'], stats['min'], label='min')
+        pl.plot( stats['generation'], stats['max'], label='max')
+        pl.plot( stats['generation'], stats['mean'], label='mean')
+        pl.plot( stats['generation'], stats['median'], label='median')
+        pl.legend()
+        
+    
 # --------------------------------------------------------------------------------
 # MULTI-core (simultaneously for different datasets)
 # 
@@ -283,7 +355,7 @@ def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, optimizer_
     if pool==None:
         pool=mp.Pool(ncpu)
 
-    optimizers=[Optimizer(model.copy(), dat, **optimizer_pars) for dat in data]
+    optimizers=[SimplexOptimizer(model.copy(), dat, **optimizer_pars) for dat in data]
     if start_points!=None and len(start_points)!=len(optimizers):
        raise ValueError
     elif start_points!=None:
@@ -313,7 +385,7 @@ if __name__=="__main__":
     dat=mod.simulate(100, upper_limit=5)
 
     mod.set_params( startpar)
-    opt=Optimizer(mod, dat, noptimizations=5, disp=1, xtol=1.0, ftol=1.0, full_output=1)
+    opt=SimplexOptimizer(mod, dat, noptimizations=5, disp=1, xtol=1.0, ftol=1.0, full_output=1)
     best,bestscore=opt.optimize()
 
     if False:
