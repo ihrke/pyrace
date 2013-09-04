@@ -1,6 +1,7 @@
 import numpy as np
 
-from .. import Parameters, pSSLBA, LBAAccumulator
+__all__=['pSSLBA_modelB', 'pSSLBA_modelB_paramspec']
+from ... import Parameters, pSSLBA, LBAAccumulator
 
 
 class pSSLBA_modelB_paramspec(Parameters):
