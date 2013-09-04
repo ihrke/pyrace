@@ -24,6 +24,78 @@ def opt_func_deviance_precalc( x, mod, data, trace ):
         print score, xp
     return score
 
+
+def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_max=1000, save_stats=None ):
+    """
+    Differential Evolution DE/rand/1/bin according to
+    the Storn and Price paper (1997, Journal of Global Optimization).
+
+    Direct implementation of algorithm in Figure 3.
+    
+    pop_ini : list of initial solutions (must have len and be in
+              transformed space - np.array)
+
+    save_stats : int or None; at which iterations, should stats be saved
+
+
+    Returns: (final pop, final score, stats)
+    """
+    stopcrit=False
+    npop=len(pop_ini)
+    D=len(pop_ini[0])
+
+    # initial evaluation
+    score=np.zeros(npop)
+    for i,cand in enumerate(pop_ini):
+        score[i]=objective(cand, *objargs)
+
+    cpop=copy.deepcopy(pop_ini)
+    niter=0
+    stats={'generation':[],
+           'min':[],
+           'max':[],
+           'mean':[],
+           'median':[]}
+    while not stopcrit:
+        # build candidate pop        
+        pop_new=[]
+        for i in range(npop): # population loop
+            a,b,c=tuple(np.random.permutation(np.delete(np.arange(npop), i))[0:3])
+            cand=np.zeros(D, dtype=np.float)
+            j=np.random.randint(D)
+            for k in range(D):
+                if np.random.uniform()<CR or k==D-1:
+                    cand[j]=cpop[c][j]+F*( cpop[a][j] - cpop[b][j])
+                else:
+                    cand[j] = cpop[i][j]
+                j=(j+1) % D
+            pop_new.append(cand)
+
+        # update scores
+        for i,cand in enumerate(pop_new):
+            cscore=objective( cand, *objargs )
+            if cscore<=score[i]:
+                score[i]=cscore
+                cpop[i]=cand
+
+        # save stats
+        if save_stats!=None and niter % save_stats == 0:
+            stats['generation'].append(niter)
+            stats['min'].append(np.min(score))
+            stats['max'].append(np.max(score))
+            stats['mean'].append(np.mean(score))
+            stats['median'].append(np.median(score))
+            
+        niter+=1
+        if niter>=gen_max:
+            stopcrit=True
+
+    return cpop, score, stats if save_stats!=None else None
+
+#def de_rand_1_bin_mp( pop_ini, objective, objargs ):
+
+
+
 class Optimizer:
     def __init__(self, model, data, opttype='simplex', optfunc=opt_func_deviance, optfunc_pars=(), noptimizations=1, trace='some',  **kwargs):
         """
@@ -100,6 +172,15 @@ class Optimizer:
         return self.result['fopt']
 
 
+
+
+# --------------------------------------------------------------------------------
+# MULTI-core (simultaneously for different datasets)
+# 
+#
+#
+# --------------------------------------------------------------------------------
+    
 def _run_optim( optimizer ):
     optimizer.optimize()
     return optimizer
