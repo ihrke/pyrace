@@ -14,6 +14,7 @@ class SimplexOptimizer(Optimizer):
         self.optfunc=optfunc
         self.optfunc_pars=optfunc_pars
         self.set_startpoint(model.params)
+        self.opts.update({'full_output':True})
 
     def set_startpoint(self, pars):
         """pars is a model's paramspec"""

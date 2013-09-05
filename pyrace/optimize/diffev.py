@@ -227,7 +227,7 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, ge
 class DEOptimizer(Optimizer):
     """Differential Evolution: DE/rand/1/bin"""
     def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), save_stats=None,
-                 xtol=None, ftol=None, nxtol=10,
+                 xtol=None, ftol=None, nxtol=10, pop_ini=None,
                  pop_size=25, F=.5, CR=0, trace_stats=None, gen_max=1000, **kwargs):
         """
         xtol, ftol, nxtol : convergence parameters
@@ -237,7 +237,8 @@ class DEOptimizer(Optimizer):
         """
         self.set_general_opts(**kwargs)
         self.opttype=self.__class__.__name__
-        
+
+        self.pop_ini=pop_ini
         self.model=model
         self.data=data
 
@@ -247,17 +248,21 @@ class DEOptimizer(Optimizer):
         self.opts.update({"F":F, 'CR':CR, "gen_max":gen_max, 'save_stats':save_stats, 'trace_stats':trace_stats,
                           'xtol':xtol, 'ftol':ftol, 'nxtol':nxtol})
 
-    def optimize(self):
+    def optimize(self, pop_ini=None):
+        if pop_ini!=None:
+            self.pop_ini=pop_ini
         if self.trace>=10:
             print "> Optimize with %s and options %s"%(self.opttype, str(self.opts))
 
         for i in range(self.noptimizations):
-            pop_ini=[self.model.trans(self.model.paramspec().random()) for _ in range(self.pop_size)]
+            if self.pop_ini==None:
+                self.pop_ini=[self.model.trans(self.model.paramspec().random()) for _ in range(self.pop_size)]
+                
             if self.pool!=None:
-                final_pop, score, stats, ngen=de_rand_1_bin_mp(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
+                final_pop, score, stats, ngen=de_rand_1_bin_mp(self.pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
                                         pool=self.pool, verbosity=self.trace, **(self.opts))
             else:
-                final_pop, score, stats, ngen=de_rand_1_bin(pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
+                final_pop, score, stats, ngen=de_rand_1_bin(self.pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
                                                       verbosity=self.trace, **(self.opts))
             idx=np.argsort(score)
             rr={'opttype':self.opttype, 'nopt':(i+1), 'xopt':final_pop[idx[0]],'fopt':score[idx[0]],
