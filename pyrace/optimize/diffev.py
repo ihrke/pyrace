@@ -117,7 +117,7 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_m
         prevmean=np.mean(score)
                 
     return cpop, score, stats if save_stats!=None else None, niter
-    
+
 
 def _eval_pop( candidates, objective, objargs ):
     res=[objective(cand, *objargs) for cand in candidates]

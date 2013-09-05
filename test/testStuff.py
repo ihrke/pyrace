@@ -48,6 +48,16 @@ class testParameters(unittest.TestCase):
         pars.random()
         assert np.all(np.abs( (pars-pars) ))<1e-10
 
+    def test_add(self):
+        class whatever(Parameters):
+            parnames=['a', 'b', 'c']
+            lower   =[100,   1,   2.2]
+            upper   =[200,   2,  50]
+
+        pars=whatever()
+        pars.random()
+        assert np.all(np.abs( (pars+pars) - (2*pars) ))<1e-10
+
 
     def test_in_range(self):
         class whatever(Parameters):
