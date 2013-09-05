@@ -5,6 +5,11 @@ import sys
 from pyrace import Parameters
 import pyrace
 
+
+def issorted(x):
+    """Check if x is sorted"""
+    return (np.diff(x) >= 0).all()
+
 class testParameters(unittest.TestCase):
     def setUp(self):
         pass
@@ -81,6 +86,17 @@ class testParameters(unittest.TestCase):
         pars2=whatever().random()
         pars3=abs(pars-pars2)
         assert np.all( pars3 )>=0
+
+class testTools(unittest.TestCase):
+    def test_trans_logistic(self):
+        x=np.linspace(0,1,100)
+        y=pyrace.trans_logistic(x)
+        assert issorted(y)
+        assert y[0]<0
+        assert y[-1]>0
+        assert pyrace.trans_logistic(0.4)<0
+        assert pyrace.trans_logistic(0.6)>0
+        assert np.abs(pyrace.trans_logistic(0.5))<1e-5
         
 import pylab as pl
 class testPlotting(unittest.TestCase):
