@@ -1,4 +1,6 @@
 import numpy as np
+import collections
+
 
 class Parameters(object):
     parnames=[]
@@ -9,6 +11,10 @@ class Parameters(object):
         self.pars={}        
         if len(args)>len(self):
             raise ValueError('too many input args')
+        if len(args)==1 and isinstance(args[0], collections.Iterable):
+            argl=np.array(args[0])
+            args=argl
+
         for i,arg in enumerate(args):
             self.pars[self.__class__.parnames[i]]=arg
 
@@ -21,11 +27,31 @@ class Parameters(object):
         return r
 
     def __sub__(self, b):
-        return self.__class__(*list(np.array([self.pars[k] for k in self.__class__.parnames]) \
-                                       - np.array([b.pars[k] for k in b.__class__.parnames])))
+        return self.__class__( np.array(self) - np.array(b) )
+
+    def __rsub__(self, b):
+        return self.__class__( np.array(self) - np.array(b) )
+
+    def __add__(self, b):
+        return self.__class__( np.array(self) + np.array(b) )
+
+    def __radd__(self, b):
+        return self.__class__( np.array(self) + np.array(b) )
+
+    def __mul__(self, b):
+        return self.__class__( np.array(self) * np.array(b) )
+
+    def __rmul__(self, b):
+        return self.__class__( np.array(self) * np.array(b) )
+    
+    def __div__(self, b):
+        return self.__class__( np.array(self) / np.array(b) )
+
+    def __rdiv__(self, b):
+        return self.__class__( np.array(self) / np.array(b) )
 
     def __abs__(self):
-        return self.__class__(*list(np.abs(np.array([self.pars[k] for k in self.__class__.parnames]))))
+        return self.__class__( np.abs(np.array(self))) 
     
     def __getattr__(self, k):
         if k=='pars':
