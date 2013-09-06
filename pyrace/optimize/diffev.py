@@ -257,6 +257,9 @@ class DEOptimizer(Optimizer):
         for i in range(self.noptimizations):
             if self.pop_ini==None:
                 self.pop_ini=[self.model.trans(self.model.paramspec().random()) for _ in range(self.pop_size)]
+            if i>0: # put in the best of the last generation
+                a=np.random.randint(self.pop_size)
+                self.pop_ini[a]=self.model.trans(self.get_best())
                 
             if self.pool!=None:
                 final_pop, score, stats, ngen=de_rand_1_bin_mp(self.pop_ini, self.optfunc, (self.model, self.data, self.trace)+self.optfunc_pars,
@@ -276,10 +279,11 @@ class DEOptimizer(Optimizer):
         
         return self.get_best(), self.get_best_score()
 
-    def plot_stats(self):
+    def plot_stats(self, log=False):
         stats=self.result['stats']
-        pl.plot( stats['generation'], stats['min'], label='min')
-        pl.plot( stats['generation'], stats['max'], label='max')
-        pl.plot( stats['generation'], stats['mean'], label='mean')
-        pl.plot( stats['generation'], stats['median'], label='median')
+        plotfunc=pl.semlogy if log else pl.plot
+        plotfunc( stats['generation'], stats['min'], label='min')
+        plotfunc( stats['generation'], stats['max'], label='max')
+        plotfunc( stats['generation'], stats['mean'], label='mean')
+        plotfunc( stats['generation'], stats['median'], label='median')
         pl.legend()

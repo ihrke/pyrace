@@ -4,7 +4,7 @@ __all__=['SimplexOptimizer']
 
 class SimplexOptimizer(Optimizer):
     """Nelder-Mead Simplex"""
-    def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), **kwargs):
+    def __init__(self, model, data, optfunc=opt_func_deviance, optfunc_pars=(), xtol=1.0, ftol=1.0, **kwargs):
         self.set_general_opts(**kwargs)
         self.opttype=self.__class__.__name__
         
@@ -14,7 +14,7 @@ class SimplexOptimizer(Optimizer):
         self.optfunc=optfunc
         self.optfunc_pars=optfunc_pars
         self.set_startpoint(model.params)
-        self.opts.update({'full_output':True})
+        self.opts.update({'full_output':True, 'xtol':xtol, 'ftol':ftol})
 
     def set_startpoint(self, pars):
         """pars is a model's paramspec"""

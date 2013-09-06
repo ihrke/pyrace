@@ -8,7 +8,7 @@ class Parameters(object):
     upper   =[]
 
     def __init__(self, *args, **kwargs):
-        self.pars={}        
+        self.pars={k:np.nan for k in self.__class__.parnames}
         if len(args)>len(self):
             raise ValueError('too many input args')
         if len(args)==1 and isinstance(args[0], collections.Iterable):
