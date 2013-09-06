@@ -98,6 +98,19 @@ class Parameters(object):
         return len(self.__class__.parnames)
 
 
+    def bounds(self, par):
+        """return bounds of parameter par (can be index or name)"""
+        if isinstance(par,int): # index
+            return (self.__class__.lower[par], self.__class__.upper[par])
+        elif isinstance(par,str): # name
+            ix=self.__class__.parnames.index(par)
+            return (self.__class__.lower[ix], self.__class__.upper[ix])
+
+    def bound_lower(self, par):
+        return self.bounds(par)[0]
+    def bound_upper(self,par):
+        return self.bounds(par)[1]
+    
     def in_range(self, pars=None):
         """
         return whether or not a specific setting of the parameters are
