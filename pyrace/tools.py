@@ -16,17 +16,19 @@ def dnormP(x, mean=0, sd=1):
     """
     return np.where(np.abs(x-mean)<7.*sd,stats.norm.pdf(x, loc=mean, scale=sd),0)
 
-
-def trans_logistic(x, inverse=False):
-    """ goes from [0,1] to [-inf,+inf] and back"""
+def trans_logistic(x, a=0, b=1, inverse=False):
+    """ goes from [a,b] to [-inf,+inf] and back;
+    inverse=False: [a,b] -> [-inf, +inf]
+    inverse=True:  [-inf,+inf] -> [a,b]
+    """
 
     if inverse:
-        return 1./(1+np.exp(-x))        
+        return (1./(1+np.exp(-x)))*(b-a)+a 
     else:
-        # enforce bounds
-        x=np.where(x<=0, 1e-20, x)
-        x=np.where(x>=1, 1-1e-20, x)
-        return -np.log( 1./x -1)
+        # take care of nan
+        x=np.where(x-a<=0, a+1e-20, x)
+        x=np.where(x>=(b-a), (b-a)-1e-20, x)
+        return -np.log( float(b-a)/(x-a)-1)
 
 if __name__=="__main__":
     import pylab as pl
