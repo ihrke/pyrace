@@ -280,11 +280,7 @@ class StopTaskDataSet(object):
 
     def plot_pstop_ssd(self, condition='all', counts=False, bw=.01):
         """plot empirical pstop vs. ssd (over all conditions or for a specific one)"""
-        if condition=='all':
-            cidx=True
-        else:
-            cidx=(self.condition==condition)
-        a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
+        a=self.get_ssd_dist(condition)
         ssds=a[:,0]
         nssds=a[:,1].astype(np.int)
         pstop=[np.sum(np.isnan(self.RT[cidx & (self.SSD==ssd)]))/float(1.0 if counts else nssds[i]) for i,ssd in enumerate(ssds)]

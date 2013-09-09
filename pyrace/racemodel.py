@@ -393,7 +393,7 @@ class StopTaskRaceModel(RaceModel):
         plot probability of successful stopping as a function of SSD.
         """
         lw=3
-        bw=0.1 # bar-width
+        bw=0.01 # bar-width
         a=int(np.sqrt(self.design.nconditions()))
         b=np.ceil(self.design.nconditions()/a)
 
@@ -403,10 +403,11 @@ class StopTaskRaceModel(RaceModel):
                 pl.subplot(a,b,cond)
 
             if data!=None:
+                cidx=(data.condition==cond)
                 tmp=data.get_ssd_dist(condition=cond)
                 ssds=tmp[:,0]
                 nssds=tmp[:,1].astype(np.int)
-                pstop=[np.sum(np.isnan(data.RT[cond & (data.SSD==cssd)]))/float(nssds[i]) for i,cssd in enumerate(ssds)]                    
+                pstop=[np.sum(np.isnan(data.RT[cidx & (data.SSD==cssd)]))/float(nssds[i]) for i,cssd in enumerate(ssds)]                    
                 pl.bar( ssds-bw/2., pstop, width=bw, alpha=.5)
             y=self.get_pstop_by_ssd(cond,ssd)
             pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(cond)))
