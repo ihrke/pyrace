@@ -199,6 +199,7 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, ge
             stats['median'].append(np.median(score))
 
         if (trace_stats!=None and niter % trace_stats == 0) or (verbosity==100):
+#            print "DE(%i): "%niter, best
             print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
                                                                         stats['median'][-1],
                                                                         stats['min'][-1],stats['max'][-1])

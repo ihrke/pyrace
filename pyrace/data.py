@@ -51,6 +51,9 @@ class StopTaskDataSet(object):
             corr=self.design.responses.index(self.design.correct_response(cond))
             self.correct[self.condition==cond]=np.where( self.response[self.condition==cond]==corr,  1, 0)
 
+        if not self.check():
+            print "WARNING: this dataset is not consistent! Run dataset.check(verbose=True) to check!"
+
     def from_dict(self, data):
         self.org_data=data
         self.ntrials=len(data[self.mapping['RT']])
@@ -152,6 +155,54 @@ class StopTaskDataSet(object):
             ntrials=self.ntrials)
         return r
 
+    def check(self, verbose=False, ret_all=False):
+        """
+        Make a few consistency checks. Print's out some messages if verbose==True.
+        Returns True if everything is fine, False  in case of problems.
+
+        if ret_all, return a list of tuples with
+
+        (check, result)
+        """
+        if verbose:
+            print "> Checking dataset '%s' (%i trials)..."%(self.name,self.ntrials)
+            
+        checks=['r=len(self.RT)==self.ntrials',
+                'r=len(self.SSD)==self.ntrials',
+                'r=len(self.response)==self.ntrials',
+                'r=len(self.condition)==self.ntrials',
+                'r=len(self.correct)==self.ntrials',
+                ('GO(NA)==responses<0', 'ix=np.isnan(self.SSD); r=np.all(np.where(np.isnan(self.RT[ix]))[0]==np.where(self.response[ix]<0)[0])'),
+                'r=self.RT.dtype==np.float',
+                'r=self.SSD.dtype==np.float',
+                'r=self.response.dtype==np.int',
+                'r=self.condition.dtype==np.int',
+                'r=self.correct.dtype==np.int',
+                ('all conditions?', 'r= np.all(np.array(sorted(np.unique(self.condition)))==np.arange(self.design.nconditions()))')
+                ]
+        results=[False for _ in range(len(checks))]
+        for ic,check in enumerate(checks):
+            ch=check[1] if isinstance(check,tuple) else check
+            try:
+                exec(ch)
+            except Exception,e:
+                if verbose:
+                    print "ERROR: ==============="
+                    print ch
+                    print e
+                    print "======================"
+                r=False
+            passed=r
+            results[ic]=passed
+            if verbose:
+                print " ", 'ok' if passed else 'FAIL', ": ", check
+
+        if ret_all:
+            return [(check,res) for check,res in zip(checks, results)]
+        else:
+            return np.all(results)
+    
+    
     def summary(self):
         """
         return summary statistics for the dataset
@@ -161,7 +212,7 @@ class StopTaskDataSet(object):
                                                                     stats.nanmean(self.RT),
                                                                     stats.nanmedian(self.RT))
         for cond in range(self.design.nconditions()):
-            r+="RT ({cond}): Min={minrt}, Max={maxrt}, Mean={maxrt}, Median={medrt}\n".format(
+            r+="RT ({cond}): Min={minrt}, Max={maxrt}, Mean={meanrt}, Median={medrt}\n".format(
                 cond=":".join(self.design.condidx(cond)),
                 minrt=np.nanmin(self.RT[self.condition==cond]),
                 maxrt=np.nanmax(self.RT[self.condition==cond]),
