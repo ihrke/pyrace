@@ -26,10 +26,11 @@ def trans_logistic(x, a=0, b=1, inverse=False):
         return (1./(1+np.exp(-x)))*(b-a)+a 
     else:
         # take care of nan
-        x=np.where(x-a<=0, a+1e-20, x)
-        x=np.where(x>=(b-a), (b-a)-1e-20, x)
+        x=np.where(x<=a, a+1e-12, x)
+        x=np.where(x>=b, b-1e-12, x)
         return -np.log( float(b-a)/(x-a)-1)
 
+    
 if __name__=="__main__":
     import pylab as pl
     x=np.linspace(-10,10,100)

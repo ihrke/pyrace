@@ -8,6 +8,9 @@ def opt_func_deviance( x, mod, data, trace ):
     score=mod.deviance(data)
     if trace==100:
         print score, xp
+    if np.isnan(score):
+        print "opt_func_deviance: found nan at ",x, "-->", xp
+        score=np.infty
     return score
 
 def opt_func_deviance_precalc( x, mod, data, trace ):
