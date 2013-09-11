@@ -8,8 +8,8 @@ before_install:
 
 # command to install dependencies
 install:
+  - "pip install -r requirements.txt --use-mirrors --upgrade" 
   - "pip install . --use-mirrors"
-  - "pip install -r requirements.txt --use-mirrors"
 
 # command to run tests
 script: py.test -v test/*.py
