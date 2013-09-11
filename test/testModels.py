@@ -5,7 +5,7 @@ import scipy
 import sys
 from pyrace import Design, StopTaskDataSet
 from pyrace import LBAAccumulator, pSSLBA
-from pyrace.models.psslba_modelb import pSSLBA_modelB
+from pyrace.models.psslba import pSSLBA_modelB
 
 
 class testpSSLBA_modelB(unittest.TestCase):

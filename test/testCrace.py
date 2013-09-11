@@ -5,7 +5,7 @@ import scipy
 import sys
 from pyrace import pnormP, dnormP, LBAAccumulator, Design, \
      StopTaskRaceModel, StopTaskDataSet
-from pyrace.models.psslba_modela import pSSLBA_modelA
+from pyrace.models.psslba import pSSLBA_modelA
 import pyrace.crace 
 
 class testCRace(unittest.TestCase):

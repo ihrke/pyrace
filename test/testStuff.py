@@ -134,7 +134,8 @@ class testPlotting(unittest.TestCase):
         
         
     def tearDown(self):
-        pl.show()
+        pass
+#        pl.show()
         
 if __name__ == '__main__':
     unittest.main()
