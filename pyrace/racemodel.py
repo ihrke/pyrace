@@ -3,11 +3,11 @@ import pylab as pl
 from collections import Iterable
 from itertools import cycle
 
-from design import *
-from tools import *
-from data import *
-from param import *
-import crace
+from .design import *
+from .tools import *
+from .data import *
+from .param import *
+import .crace as crace
 
 
 class Accumulator:
