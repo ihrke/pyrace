@@ -366,7 +366,7 @@ class StopTaskRaceModel(RaceModel):
 
         t=np.linspace(lims[0], lims[1], 1000)
         for cond in range(self.design.nconditions()):
-            pl.subplot(a,b,cond)
+            pl.subplot(a,b,cond+1)
 
             for ssdi,ssd in enumerate(SSD):
                 lsty=linestyles[ssdi]
@@ -400,7 +400,7 @@ class StopTaskRaceModel(RaceModel):
         ssd=np.linspace(SSD_lims[0], SSD_lims[1], npoints)        
         for cond in range(self.design.nconditions()):
             if subplots:
-                pl.subplot(a,b,cond)
+                pl.subplot(a,b,cond+1)
 
             if data!=None:
                 cidx=(data.condition==cond)
@@ -429,7 +429,7 @@ class StopTaskRaceModel(RaceModel):
 
         t=np.linspace(lims[0], lims[1], 1000)
         for cond in range(self.design.nconditions()):
-            pl.subplot(a,b,cond)
+            pl.subplot(a,b,cond+1)
             goix=((dat.condition==cond) & np.isfinite(dat.RT) & np.isnan(dat.SSD))
             for ri,resp in enumerate(self.design.responses):
                 d=dat.RT[goix & (dat.response==ri)]

@@ -23,9 +23,23 @@ class Parameters(object):
 
     def __repr__(self):
         r="{cname}({parlist})".format(cname=self.__class__.__name__,
-                                      parlist=",".join(["%s=%s"%(k,self.pars[k]) for k in self.__class__.parnames]))
+                                      parlist=",".join(["%s=%.2f"%(k,self.pars[k]) for k in self.__class__.parnames]))
         return r
 
+    def _repr_html_(self):
+        """used by ipython notebook"""
+        r="<table>\n"
+        r+="<caption>%s</caption>\n"%self.__class__.__name__
+        r+="<tr>"
+        for nam in self.__class__.parnames:
+            r+="<th>%s</th>"%nam
+        r+="</tr>\n"
+        r+="<tr>"
+        for nam in self.__class__.parnames:
+            r+="<td>%.2f</td>"%self.pars[nam]
+        r+="</tr>\n</table>"
+        return r
+    
     def __sub__(self, b):
         return self.__class__( np.array(self) - np.array(b) )
 

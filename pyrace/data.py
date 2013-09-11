@@ -259,7 +259,7 @@ class StopTaskDataSet(object):
         return a
         
     
-    def plot_ssd(self, condition='all', counts=False, bw=.01):
+    def plot_ssd(self, condition='all', counts=False, bw=.01, xlims=None):
         """plot distribution of SSDs (num samples per SSD)
 
         bw is the barwidth
@@ -274,7 +274,9 @@ class StopTaskDataSet(object):
         pl.bar(a[:,0]-bw/2.0, a[:,1], width=bw)
         pl.xlabel('SSD')
         pl.ylabel('freq')
-        pl.title('data=%s'%(self.name))
+        pl.title('data=%s, condition=%s'%(self.name, 'all' if condition=='all' else ":".join(self.design.condidx(condition))))
+        if xlims!=None:
+            pl.xlim(*xlims)
         if not counts:
             pl.ylim(0,1) # probs        
 
@@ -298,14 +300,14 @@ class StopTaskDataSet(object):
     def plot_pstop_ssd_allcond(self, counts=False, bw=.01):
         nc=self.design.nconditions()
         for i in range(nc):
-            pl.subplot(1,nc,i)
+            pl.subplot(1,nc,i+1)
             self.plot_pstop_ssd(condition=i, counts=counts, bw=bw)
 
-    def plot_ssd_allcond(self, counts=False, bw=.01):
+    def plot_ssd_allcond(self, counts=False, bw=.01, xlims=None):
         nc=self.design.nconditions()
         for i in range(nc):
-            pl.subplot(1,nc,i)
-            self.plot_ssd(condition=i, counts=counts, bw=bw)
+            pl.subplot(1,nc,i+1)
+            self.plot_ssd(condition=i, counts=counts, bw=bw, xlims=xlims)
             
     
 if __name__=="__main__":
