@@ -5,7 +5,7 @@ python:
 
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install -qq gsl-bin libgsl0-dev
+ - sudo apt-get install -qq gsl-bin libgsl0-dev swig
 
 # command to install dependencies
 install:
