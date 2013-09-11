@@ -1,6 +1,8 @@
 pyrace
 ======
 
+[![Build Status](https://travis-ci.org/ihrke/pyrace.png?branch=master)](https://travis-ci.org/ihrke/pyrace)
+
 Race-Models for RT-data in python
 
 This is work-in-progress and currently only for Stop-Tasks.
@@ -15,3 +17,6 @@ Use
     ARCHFLAGS="-arch x86_64" python setup.py build 
 	
 or whatever architecture you used for compiling libgsl.
+
+
+
