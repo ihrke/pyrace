@@ -37,7 +37,6 @@ class pSSLBA_modelB(pSSLBA):
         Vont- mean drift for all correct go-accs in on-task condition        
         v   - mean drift for all wrong go-accs
         """
-        self.init_cmodule()
         if 'TUT' not in design.factors:
             raise ValueError('need TUT-factor for this model')
         if 'tut' not in design.factor_dict['TUT']:

@@ -33,7 +33,6 @@ class pSSLBA_modelA(pSSLBA):
         V   - mean drift for all correct go-accs
         v   - mean drift for all wrong go-accs
         """
-        self.init_cmodule()
         self.design=design
         self.sv=1.0
         if pars!=None:

@@ -477,6 +477,3 @@ class StopTaskRaceModel(RaceModel):
         
     def BIC(self, dat):
         return self.npars()*np.log(dat.ntrials)-2*self.loglikelihood(dat)
-        
-    def init_cmodule(self):
-        crace.init()
