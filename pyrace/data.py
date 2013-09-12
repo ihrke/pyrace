@@ -3,8 +3,8 @@ import numpy as np
 import pylab as pl
 import scipy.stats as stats
 
-from tools import *
-from design import Design
+from .tools import *
+from .design import Design
 
 class StopTaskDataSet(object):
     """

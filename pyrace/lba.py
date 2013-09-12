@@ -2,8 +2,8 @@ import numpy as np
 import scipy
 import scipy.stats as stats
 
-from tools import *
-from racemodel import *
+from .tools import *
+from .racemodel import *
 
 class LBAAccumulator(Accumulator):
     def __init__(self, ter, A, v, sv, b, name='unknown'):

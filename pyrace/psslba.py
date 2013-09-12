@@ -3,10 +3,10 @@ import pandas as pd
 import scipy
 from collections import namedtuple
 
-from tools import *
-from racemodel import *
-from data import *
-from lba import *
+from .tools import *
+from .racemodel import *
+from .data import *
+from .lba import *
 import crace
 
 class pSSLBA(StopTaskRaceModel):

@@ -32,11 +32,6 @@
 	 } while(0)
 
 
-void init(void){
-
-}
-
-
 double pnormP(double x, double mean, double sd){
   /* PDF and CDF 
   return np.where(np.abs(x-mean)<7.*sd, stats.norm.cdf(x, loc=mean,scale=sd), np.where(x<mean,0,1))
