@@ -2,7 +2,8 @@
 # ----------- setup.py
 #
 from setuptools import setup, Extension, find_packages
-from setuptools.command.build import build
+#from setuptools.command.build import build
+#from distutils.command.build import build
 import numpy as np
 import sys, os
 
@@ -47,15 +48,6 @@ def gsl_get_libraries():
 #------------------------------------------------------------------------
 #
 
-class my_build(build):
-    # different order: build_ext *before* build_py, so that
-    # build_py can already use crace.py
-    sub_commands = [('build_ext',     build.build.has_ext_modules),
-                    ('build_py',      build.build.has_pure_modules),
-                    ('build_clib',    build.build.has_c_libraries),
-                    ('build_scripts', build.build.has_scripts),
-                   ]
-
 dist=setup(
     name="pyrace",
     version=VERSION,
@@ -70,16 +62,5 @@ dist=setup(
                            library_dirs=[gsl_get_library_dir()],
                            swig_opts=['-modern'])],
     py_modules=['crace'],
-    cmdclass = {'build': my_build},
     )
 
-""" solution to issue?
-# Rerun the build_py to ensure that swig generated py files are also copied
-build_py = build_py(dist)
-build_py.ensure_finalized()
-build_py.run()
-
-install = install(dist)
-install.ensure_finalized()
-install.run()
-"""
