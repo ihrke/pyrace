@@ -17,4 +17,4 @@ install:
   - "python setup.py install"
 
 # command to run tests
-script: py.test -v test/*.py
+script: cd test; py.test -v *.py
