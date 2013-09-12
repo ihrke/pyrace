@@ -7,25 +7,24 @@ from .tools import *
 from .design import Design
 
 class StopTaskDataSet(object):
-    """
-    Implements a data-set for the stop-task.
-
-    
-    
-    Internally, it stores the data using the following structure:
-    
-    condition SSD RT response
-    
-    where condition is an integer number that is expanded by 
-    the Design() as is response. 
-    
-    * if SSD==np.nan -> GO-trial
-    * if RT==np.nan -> missed/successful STOP
-    * if response==-1 -> miss/successful STOP
-    * if condition<0 -> something is wrong with the dataset
-    """
     def __init__(self, design, data=None, name=None, format='wide', mapping=None):
         """
+        Implements a data-set for the stop-task.
+
+        Internally, it stores the data using the following structure:
+
+        condition SSD RT response
+
+        where condition is an integer number that is expanded by 
+        the Design() as is response. 
+
+        * if SSD==np.nan -> GO-trial
+        * if RT==np.nan -> missed/successful STOP
+        * if response==-1 -> miss/successful STOP
+        * if condition<0 -> something is wrong with the dataset
+
+        **parameters**:
+        
         design : Design 
            description of the experiment
         data : pandas.DataFrame or dict
@@ -178,7 +177,10 @@ class StopTaskDataSet(object):
                 'r=self.response.dtype==np.int',
                 'r=self.condition.dtype==np.int',
                 'r=self.correct.dtype==np.int',
-                ('all conditions?', 'r= np.all(np.array(sorted(np.unique(self.condition)))==np.arange(self.design.nconditions()))')
+                ('all conditions?', 'r= np.all(np.array(sorted(np.unique(self.condition)))==np.arange(self.design.nconditions()))'),
+                ('RT  : any stop trials?', 'r=np.any(np.isnan(self.RT))'),
+                ('SSD : any stop trials?', 'r=np.any(np.isnan(self.SSD))'),
+                ('resp: any stop trials?', 'r=np.any(self.response<0)'),
                 ]
         results=[False for _ in range(len(checks))]
         for ic,check in enumerate(checks):
