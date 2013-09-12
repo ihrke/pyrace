@@ -47,6 +47,7 @@ setup(
                            libraries=gsl_get_libraries(),
                            library_dirs=[gsl_get_library_dir()],
                            swig_opts=['-modern'])],
+    py_modules=['crace'],
     )
 
 
