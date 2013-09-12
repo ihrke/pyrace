@@ -15,17 +15,17 @@ before_install:
   - sudo apt-get install -qq gsl-bin libgsl0-dev swig libblas-dev libatlas-dev liblapack-dev gfortran
 
 install: 
-  - pip install numpy --use-mirrors --upgrade
-  - pip install scipy --use-mirrors --upgrade
-  - pip install pandas --use-mirrors --upgrade
-  - pip install matplotlib --use-mirrors --upgrade
-  - pip install pytest --use-mirrors --upgrade
-  - pip install ipython --upgrade
+  - pip -q install numpy --use-mirrors --upgrade
+  - pip -q install scipy --use-mirrors --upgrade
+  - pip -q install pandas --use-mirrors --upgrade
+  - pip -q install matplotlib --use-mirrors --upgrade
+  - pip -q install pytest --use-mirrors --upgrade
+  - pip -q install ipython --upgrade
   - python setup.py build
   - python setup.py install
 
 script: 
-  - cd test; py.test -v *.py cd ..
+  - cd test; py.test -v *.py; cd ..
   - sh tools/commit_from_travis.sh
 
 
