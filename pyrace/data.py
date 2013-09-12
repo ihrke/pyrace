@@ -181,6 +181,7 @@ class StopTaskDataSet(object):
                 ('RT  : any stop trials?', 'r=np.any(np.isnan(self.RT))'),
                 ('SSD : any stop trials?', 'r=np.any(np.isnan(self.SSD))'),
                 ('resp: any stop trials?', 'r=np.any(self.response<0)'),
+                ('RT(nan) wherevever resp<0?', 'r=np.all( np.where(np.isnan(self.RT))[0]==np.where(self.response<0)[0])'),
                 ]
         results=[False for _ in range(len(checks))]
         for ic,check in enumerate(checks):

@@ -5,7 +5,6 @@ python:
 env: 
   global: 
      - secure: PiFrrcDhq/jJuIcE/bnhc7YJDonOa8QbF/PvCpoI8uSqlNXCObnmRy69edGjFrUpge+u13TTm/D1FN70klktpIvaKcYedUIQ3db9MoHulkdaRrS5WoJpM5lYQr0SES72w5Ul8ia2E9wPAdhfpH2ZCFkDPkLz2Fr1xndE7nmjHzQ=
-    - secure: ePcklfMOx0oPP6PqULgs8qWtvBVUuOo/cSYSAMmErjHutrivSiNIW5/sJCEmHD8KFSd4pjHi73uFpJEDDKYpHz+ZDEJoQf8YZDstsrLGAxVNdphHn/UcVSssq50oRmSg/Pku8Qju5Tty/vRkMyZVEnW6jfpqGRelWPKagoB9vvo=
 
 branches: 
   only: 
