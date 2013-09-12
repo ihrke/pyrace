@@ -1,21 +1,32 @@
 language: python
-python:
+
+python: 
   - "2.7"
+env: 
+  global: 
+     - secure: PiFrrcDhq/jJuIcE/bnhc7YJDonOa8QbF/PvCpoI8uSqlNXCObnmRy69edGjFrUpge+u13TTm/D1FN70klktpIvaKcYedUIQ3db9MoHulkdaRrS5WoJpM5lYQr0SES72w5Ul8ia2E9wPAdhfpH2ZCFkDPkLz2Fr1xndE7nmjHzQ=
+    - secure: ePcklfMOx0oPP6PqULgs8qWtvBVUuOo/cSYSAMmErjHutrivSiNIW5/sJCEmHD8KFSd4pjHi73uFpJEDDKYpHz+ZDEJoQf8YZDstsrLGAxVNdphHn/UcVSssq50oRmSg/Pku8Qju5Tty/vRkMyZVEnW6jfpqGRelWPKagoB9vvo=
 
-# setup dependencies for python-packages
-before_install:
- - sudo apt-get update -qq
- - sudo apt-get install -qq gsl-bin libgsl0-dev swig libblas-dev libatlas-dev liblapack-dev gfortran
+branches: 
+  only: 
+  - master
 
-# command to install dependencies
-install:
-  - "pip install numpy --use-mirrors --upgrade"
-  - "pip install scipy --use-mirrors --upgrade"
-  - "pip install pandas --use-mirrors --upgrade"
-  - "pip install matplotlib --use-mirrors --upgrade"
-  - "pip install pytest --use-mirrors --upgrade"
-  - "python setup.py build"
-  - "python setup.py install"
+before_install: 
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq gsl-bin libgsl0-dev swig libblas-dev libatlas-dev liblapack-dev gfortran
 
-# command to run tests
-script: cd test; py.test -v *.py
+install: 
+  - pip install numpy --use-mirrors --upgrade
+  - pip install scipy --use-mirrors --upgrade
+  - pip install pandas --use-mirrors --upgrade
+  - pip install matplotlib --use-mirrors --upgrade
+  - pip install pytest --use-mirrors --upgrade
+  - pip install ipython --upgrade
+  - python setup.py build
+  - python setup.py install
+
+script: 
+  - cd test; py.test -v *.py cd ..
+  - sh tools/commit_from_travis.sh
+
+
