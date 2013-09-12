@@ -7,7 +7,7 @@ from .design import *
 from .tools import *
 from .data import *
 from .param import *
-import .crace as crace
+import crace
 
 
 class Accumulator:
