@@ -360,7 +360,7 @@ class StopTaskRaceModel(RaceModel):
 
         lw=3
         a=int(np.sqrt(self.design.nconditions()))
-        b=np.ceil(self.design.nconditions()/a)
+        b=np.ceil(self.design.nconditions()/float(a))
 
         t=np.linspace(lims[0], lims[1], 1000)
         for cond in range(self.design.nconditions()):
@@ -393,7 +393,7 @@ class StopTaskRaceModel(RaceModel):
         lw=3
         bw=0.01 # bar-width
         a=int(np.sqrt(self.design.nconditions()))
-        b=np.ceil(self.design.nconditions()/a)
+        b=np.ceil(self.design.nconditions()/float(a))
 
         ssd=np.linspace(SSD_lims[0], SSD_lims[1], npoints)        
         for cond in range(self.design.nconditions()):
@@ -423,7 +423,7 @@ class StopTaskRaceModel(RaceModel):
         """
         colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
         a=int(np.sqrt(self.design.nconditions()))
-        b=np.ceil(self.design.nconditions()/a)
+        b=np.ceil(self.design.nconditions()/float(a))
 
         t=np.linspace(lims[0], lims[1], 1000)
         for cond in range(self.design.nconditions()):

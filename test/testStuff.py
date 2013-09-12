@@ -6,6 +6,30 @@ from pyrace import Parameters
 import pyrace
 
 
+class parspec(pyrace.Parameters):
+    parnames=['ter', 'A', 'B', 'V', 'v']
+    lower=[0, 0, 0, -5, -5]
+    upper=[1, 4, 5, 5, 5]
+    
+class Testmod(pyrace.pSSLBA):
+    paramspec=parspec;
+    def __init__(self,design):
+        self.design=design
+        self.sv=1.0
+        self.set_mixing_probabilities(0,0)
+        self.set_params(self.paramspec().random())
+    def set_params(self,pars):
+        self.params=pars
+        go_acc=[]
+        stop_acc=[]
+        for cond in range(self.design.nconditions()):
+            go_acc.append( [pyrace.LBAAccumulator(pars.ter, pars.A, pars.V, self.sv, pars.A+pars.B)
+                            for resp in self.design.get_responses()])
+            stop_acc.append(pyrace.LBAAccumulator(pars.ter, pars.A, pars.V, self.sv, pars.A+pars.B))
+        self.set_accumulators(go_acc, stop_acc)
+
+
+
 def issorted(x):
     """Check if x is sorted"""
     return (np.diff(x) >= 0).all()
@@ -110,7 +134,13 @@ class testTools(unittest.TestCase):
         assert np.abs(pyrace.trans_logistic(0.5))<1e-5
         
 import pylab as pl
+import os
 class testPlotting(unittest.TestCase):
+    def setUp(self):
+        self.output_dir='test_output'
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        self.saved=[]
     def test_plot_bar_parameters(self):
         class whatever(Parameters):
             parnames=['a', 'b', 'c']
@@ -131,11 +161,25 @@ class testPlotting(unittest.TestCase):
 
         pl.figure()
         pyrace.plot_bar_parameters(*pars, title='%i tests'%npar)
+        self.savefig('test_plot_bar_parameters_1.png')
+
+    def savefig(self, fname):
+        fname=os.path.join(self.output_dir, fname)
+        print "> saving ", fname
+        self.saved.append(fname)
+        pl.savefig(fname)
         
+    def test_model_plot(self):
+        design=pyrace.Design([{'fac1':['level11','level12', 'level13']},
+                              {'fac2':['level21','level22', 'level23']},
+                              {'fac3':['level31','level32']}],
+                              ['level21', 'level22'], 'fac2')
+        mod=Testmod(design)
+        mod.plot_model()
+        self.savefig('test_model_plot_1.png')
         
     def tearDown(self):
-        pass
-#        pl.show()
+        print "> saved ", self.saved
         
 if __name__ == '__main__':
     unittest.main()
