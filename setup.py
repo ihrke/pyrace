@@ -2,6 +2,7 @@
 # ----------- setup.py
 #
 from setuptools import setup, Extension, find_packages
+from setuptools.command.build_py import build_py, install
 import numpy as np
 import sys, os
 
@@ -35,7 +36,11 @@ def gsl_get_library_dir():
 def gsl_get_libraries():
     return ['gsl', 'gslcblas']
 
-setup(
+
+#
+#------------------------------------------------------------------------
+#
+dist=setup(
     name="pyrace",
     packages=find_packages(),#["pyrace"],
     author="Matthias Mittner",
@@ -50,4 +55,13 @@ setup(
     py_modules=['crace'],
     )
 
+""" solution to issue?
+# Rerun the build_py to ensure that swig generated py files are also copied
+build_py = build_py(dist)
+build_py.ensure_finalized()
+build_py.run()
 
+install = install(dist)
+install.ensure_finalized()
+install.run()
+"""
