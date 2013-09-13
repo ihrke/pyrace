@@ -1,6 +1,7 @@
 import numpy as np
 import pylab as pl
 import scipy
+import multiprocessing as mp
 
 def opt_func_deviance( x, mod, data, trace ):
     xp=mod.untrans(x)

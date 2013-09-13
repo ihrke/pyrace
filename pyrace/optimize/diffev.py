@@ -84,19 +84,21 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_m
         bestix=np.argmin(score)
         best[nxtoli]=cpop[bestix]
         nxtoli = (nxtoli+1) % nxtol
-        
+
+        last_stat={'generation':niter,
+                   'min':np.min(score),
+                   'max':np.max(score),
+                   'mean':np.mean(score),
+                   'median':np.median(score)}
         # save stats
         if save_stats!=None and niter % save_stats == 0:
-            stats['generation'].append(niter)
-            stats['min'].append(np.min(score))
-            stats['max'].append(np.max(score))
-            stats['mean'].append(np.mean(score))
-            stats['median'].append(np.median(score))
+            for k,v in last_stat.items():
+                stats[k].append(v)
 
         if (trace_stats!=None and niter % trace_stats == 0) or (verbosity==100):
-            print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
-                                                                        stats['median'][-1],
-                                                                        stats['min'][-1],stats['max'][-1])
+            print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,last_stat['mean'],
+                                                                        last_stat['median'],
+                                                                        last_stat['min'],last_stat['max'])
         niter+=1
 
         ## convergence criteria
@@ -189,20 +191,21 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, ge
         bestix=np.argmin(score)
         best[nxtoli]=cpop[bestix]
         nxtoli = (nxtoli+1) % nxtol
-        
+
+        last_stat={'generation':niter,
+                   'min':np.min(score),
+                   'max':np.max(score),
+                   'mean':np.mean(score),
+                   'median':np.median(score)}
         # save stats
         if save_stats!=None and niter % save_stats == 0:
-            stats['generation'].append(niter)
-            stats['min'].append(np.min(score))
-            stats['max'].append(np.max(score))
-            stats['mean'].append(np.mean(score))
-            stats['median'].append(np.median(score))
+            for k,v in last_stat.items():
+                stats[k].append(v)
 
         if (trace_stats!=None and niter % trace_stats == 0) or (verbosity==100):
-#            print "DE(%i): "%niter, best
-            print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,stats['mean'][-1],
-                                                                        stats['median'][-1],
-                                                                        stats['min'][-1],stats['max'][-1])
+            print "DE(%i): mean=%.2f, median=%.2f, range=(%.2f, %.2f)"%(niter,last_stat['mean'],
+                                                                        last_stat['median'],
+                                                                        last_stat['min'],last_stat['max'])
         niter+=1
 
         ## convergence criteria

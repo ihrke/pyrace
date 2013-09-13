@@ -7,6 +7,7 @@ from .tools import *
 from .racemodel import *
 from .data import *
 from .lba import *
+from .param import *
 import crace
 
 class pSSLBA(StopTaskRaceModel):
@@ -85,3 +86,52 @@ class pSSLBA(StopTaskRaceModel):
         return L
 
 
+"""
+# hybrid II    
+{'ter':None,
+ 'A':None,
+ 'B':['stop'], # -> B (all GO), Bs
+ 'V':['deprivation'], # -> Vc, Vd
+ 'v':['deprivation'],
+ 'sv':1.0,
+ 'tf':0,
+ 'gf':0}
+
+# hybrid I
+{'ter':None,
+ 'A':None,
+ 'B':['stop', 'deprivation'], # -> Bc, Bd, Bcs, Bds (all GO), Bs
+ 'V':['deprivation', 'stop'], # -> Vc, Vd
+ 'v':['deprivation'],
+ 'sv':1.0,
+ 'tf':0,
+ 'gf':0}
+
+
+
+def create_model(**args):
+    class paramspec(Parameters):
+        parnames=[]
+        lower=[]
+        upper=[]
+    class model(pSSLBA):
+        def __init__(self, design, pars=None):
+            self.design=design
+            self.sv=1.0
+            if pars!=None:
+                self.set_params(pars)
+            else:
+                self.set_params(self.__class__.paramspec().random())
+            self.set_mixing_probabilities(0,0)
+            
+    
+
+model( B=['Bc', 'Bd', 'Bcs', 'Bds'],
+       Bc={'deprivation':'control'},
+       Bcs={'deprivation':'control', 'stop':True },
+       Bd={'deprivation':'deprived'},
+       Bds{'deprivation':'deprived'},
+       bounds={'B':[]})
+{'B': [ ('Bc', {'deprivation':'control'}
+                
+"""
