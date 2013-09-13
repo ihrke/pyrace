@@ -20,7 +20,7 @@ install:
   - pip install pandas --use-mirrors --upgrade
   - pip install matplotlib --use-mirrors --upgrade
   - pip install pytest --use-mirrors --upgrade
-  - pip install ipython --upgrade
+  - pip install ipython[all] --upgrade
   - python setup.py build
   - python setup.py install
 
