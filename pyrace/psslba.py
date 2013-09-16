@@ -87,6 +87,12 @@ class pSSLBA(StopTaskRaceModel):
 
 
 """
+sv=1.0
+V ~ deprivation * stop
+v ~ deprivation
+tf=0
+gf=0
+
 # hybrid II    
 {'ter':None,
  'A':None,

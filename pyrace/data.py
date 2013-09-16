@@ -47,7 +47,7 @@ class StopTaskDataSet(object):
 
         self.correct=np.zeros_like(self.condition, dtype=np.int)
         for cond in range(self.design.nconditions()):
-            corr=self.design.responses.index(self.design.correct_response(cond))
+            corr=self.design.correct_response(cond, as_index=True)
             self.correct[self.condition==cond]=np.where( self.response[self.condition==cond]==corr,  1, 0)
 
         if not self.check():

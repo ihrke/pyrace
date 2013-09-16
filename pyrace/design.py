@@ -9,6 +9,12 @@ class Design:
                      correct response)
         """
         self.set_factors(factors)
+        if len(responses)<=1:
+            raise ValueError("Can't handle less than 2 responses, currently: responses=%s"%(str(responses)))
+        if len(responses)>2:
+            print "WARNING: you have a design with more than 2 responses"
+            print "  though the code can handle this situation in principle, I've never tested it"
+            print "  and there seem to be issues. That said, have fun!"
         self.responses=responses
         self.response_to_factor=response_to_factor
         self.response_to_factor_idx=self.factors.index(response_to_factor)
@@ -40,9 +46,12 @@ class Design:
     def nconditions(self):
         return len(self.factors_to_int)
     
-    def correct_response(self, conditionidx):
+    def correct_response(self, conditionidx, as_index=False):
         """return correct response in condition idx"""
-        return self.factors_from_int[conditionidx][self.response_to_factor_idx]
+        if as_index:
+            return self.responses.index(self.factors_from_int[conditionidx][self.response_to_factor_idx])
+        else:
+            return self.factors_from_int[conditionidx][self.response_to_factor_idx]
     
     def __repr__(self):
         r="<Design>\n"
@@ -60,7 +69,19 @@ class Design:
         return value of factor in condition cond
         """
         return self.factors_from_int[cond][self.factors_idx[factor]]
-        
+
+    def condidcs_factor(self, factor, value):
+        """
+        return all condition indices in which factor has value
+        """
+        idcs=[]
+        for k,v in self.factors_from_int.items():
+            if value in v[self.factors_idx[factor]]:
+               idcs.append(k)
+        if len(idcs)==0:
+            print "WARNING: no conditions found for %s=%s"%(str(factor), str(value))
+        return idcs
+    
     def condidx(self, condition):
         """for an index, return condition string,
            for a list/string return condition index"""

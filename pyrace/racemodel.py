@@ -1,6 +1,7 @@
 import scipy
 import pylab as pl
 from collections import Iterable
+from textwrap import wrap
 from itertools import cycle
 
 from .design import *
@@ -99,7 +100,7 @@ class StopTaskRaceModel(RaceModel):
         accumulators=self.go_accumulators[condition]
         if nacc<0 or nacc>=len(accumulators):
             raise ValueError("nacc must be between 0 and %i"%(len(accumulators)-1))
-        if np.any(t<1e-5):
+        if np.any(t<1e-15):
             raise ValueError('need positive t here')
         out = np.ones_like(t, dtype=np.float)
         for i in range(len(accumulators)):
@@ -378,6 +379,7 @@ class StopTaskRaceModel(RaceModel):
                     pl.plot(t, self.dens_acc_stop(t, cond, ssd, -1), color=stop_color, linewidth=lw, label='stop (SSD=%.2f)'%ssd, ls=lsty)
                 pl.xlabel('t (s)')
                 pl.ylabel('PDF')
+                pl.xlim(lims)
             pl.title(":".join(self.design.condidx(cond)))
             if cond==0:
                 pl.legend()
@@ -386,7 +388,7 @@ class StopTaskRaceModel(RaceModel):
     def get_pstop_by_ssd(self, cond, SSD):
         return np.array([self.dfun_stop(cond, cssd) for cssd in SSD], dtype=np.double)
         
-    def plot_pstop(self, data=None, SSD_lims=(0,1.0), npoints=10, subplots=False):
+    def plot_pstop(self, data=None, SSD_lims=(0,1.0), npoints=10, subplots=True):
         """
         plot probability of successful stopping as a function of SSD.
         """
@@ -417,31 +419,95 @@ class StopTaskRaceModel(RaceModel):
         if not subplots:
             pl.legend()
         
-    def plot_fit_go(self, dat, lims=(0.1,10), nbins=20):
+    def plot_fit_go(self, dat, lims=(0.001,5), res=100, nbins=20, conditions='all', split_by_response='correct'):
         """
         Plot histogram of GO-trials and the model-solution per condition.
+
+        nbins : int or list
+           bins for the data-histogram
+        
+        res : int
+           number of datapoints with which the density plots are resolved
+        
+        conditions : None, 'all' or list of items or lists
+            this is used to collapse over design factors that are not modeled
+            e.g., conditions=[ [0,1], [1,2] ] would plot the data of
+            [0,1] together and [1,2] together. The density is plotted for
+            both conditions on top of each other.
+
+        split_by_response : None, 'correct' or 'response'
+           plot separate histograms/densities depending on the response
+             'correct'  : split into correct/incorrect responses
+             'response' : split into the possible responses
         """
         colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
-        a=int(np.sqrt(self.design.nconditions()))
-        b=np.ceil(self.design.nconditions()/float(a))
+        if isinstance(nbins, int):
+            bins=np.linspace(lims[0], lims[1], nbins)
+        else:
+            bins=nbins
+        
+        if conditions=='all':
+            conditions=range(self.design.nconditions())
+        elif conditions==None:
+            conditions=[range(self.design.nconditions())]
 
-        t=np.linspace(lims[0], lims[1], 1000)
-        for cond in range(self.design.nconditions()):
-            pl.subplot(a,b,cond+1)
-            goix=((dat.condition==cond) & np.isfinite(dat.RT) & np.isnan(dat.SSD))
-            for ri,resp in enumerate(self.design.responses):
-                d=dat.RT[goix & (dat.response==ri)]
+        a=int(np.sqrt(len(conditions)))
+        b=np.ceil(len(conditions)/float(a))
+        
+        t=np.linspace(lims[0], lims[1], res)
+        for cix,cond in enumerate(conditions):
+            pl.subplot(a,b,cix+1)
+            if isinstance(cond, int):
+                condidx=(dat.condition==cond)
+            if isinstance(cond, Iterable):
+                condidx=np.array( [dcond in cond for dcond in dat.condition], dtype=np.bool)
+                
+            goix=((condidx) & np.isfinite(dat.RT) & np.isnan(dat.SSD))
+
+            ## construct response indices
+            if split_by_response not in ['response', 'correct']:
+                split_by_response=='response'
+                
+            if split_by_response=='response':
+                respidcs=[ (ri, resp, (dat.response==ri)) for ri,resp in enumerate(self.design.responses)]
+            else:
+                con=cond[0] if isinstance(cond,Iterable) else cond
+                corr_ri=self.design.correct_response(con, as_index=True)
+                inc_ri=((corr_ri + 1) % self.design.nresponses())
+                respidcs=[(ri, resp, dat.correct==rbo) for rbo,resp,ri in zip([True, False], ['correct', 'incorrect'], [corr_ri,inc_ri])]
+
+            for ri,resp,respix in respidcs:
+                #resp, respix=resptup
+                d=dat.RT[goix & respix]
                 
                 if len(d)>0:
-                    h,hx=np.histogram(d, density=True, bins=nbins)
-                    hx=hx[:-1]#-(hx[1]-hx[0])/2.
+                    h,hx=np.histogram(d, density=True, bins=bins)
+                    hx=hx[:-1]
                     h=h*(len(d)/float((len(dat.RT[goix]))))
-                    pl.bar(hx, h, width=(hx[1]-hx[0]), alpha=.3, color=colors[ri], label='resp=%s'%resp)
-#                    pl.hist(d, nbins, normed=True, alpha=.3, color=colors[ri], label='resp=%s'%resp)
-                pl.plot(t, self.dens_acc_go(t, cond, ri), color=colors[ri], linewidth=3)
-            pl.title(":".join(self.design.condidx(cond)))
-            if cond==0:
-                pl.legend()            
+                    pl.bar(hx, h, width=(hx[1]-hx[0]), alpha=.3, color=colors[ri], label='resp=%s'%(resp))
+
+                if isinstance(cond, Iterable):
+                    for con in cond:
+                        if split_by_response=='correct':
+                            corr_ri=self.design.correct_response(con, as_index=True)
+                            inc_ri =( (corr_ri+1) % self.design.nresponses())
+                            cri=corr_ri if resp=='correct' else inc_ri
+                        else:
+                            cri=ri
+                        pl.plot(t, self.dens_acc_go(t, con, cri), color=colors[ri], linewidth=3)
+                else:
+                    pl.plot(t, self.dens_acc_go(t, cond, ri), color=colors[ri], linewidth=3)
+            if isinstance(cond, Iterable):
+                titlab=(",".join( ":".join(self.design.condidx(con)) for con in cond))
+            else:
+                titlab=(":".join(self.design.condidx(cond)))
+            # long title, guaranteed to fit w matplotlib
+            titlab=("\n".join(wrap(titlab,width=70)))
+            pl.title(titlab, fontsize='x-small')
+
+            if cix==0:
+                pl.legend()
+            pl.xlim(lims)
 
     
     def loglikelihood(self,dat):
