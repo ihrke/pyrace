@@ -388,34 +388,56 @@ class StopTaskRaceModel(RaceModel):
     def get_pstop_by_ssd(self, cond, SSD):
         return np.array([self.dfun_stop(cond, cssd) for cssd in SSD], dtype=np.double)
         
-    def plot_pstop(self, data=None, SSD_lims=(0,1.0), npoints=10, subplots=True):
+    def plot_pstop(self, data=None, SSD_lims=(0,1.0), npoints=8, subplots=True, conditions='all'):
         """
         plot probability of successful stopping as a function of SSD.
         """
         lw=3
         bw=0.01 # bar-width
-        a=int(np.sqrt(self.design.nconditions()))
-        b=np.ceil(self.design.nconditions()/float(a))
+        if conditions=='all':
+            conditions=range(self.design.nconditions())
+        elif conditions==None:
+            conditions=[range(self.design.nconditions())]
+        
+        a=int(np.sqrt(len(conditions)))
+        b=np.ceil(len(conditions)/float(a))
 
-        ssd=np.linspace(SSD_lims[0], SSD_lims[1], npoints)        
-        for cond in range(self.design.nconditions()):
+        ssd=np.linspace(SSD_lims[0], SSD_lims[1], npoints)
+
+        for cix,cond in enumerate(conditions):
             if subplots:
-                pl.subplot(a,b,cond+1)
-
+                pl.subplot(a,b,cix+1)
+            if isinstance(cond, int):
+                condidx=(data.condition==cond)
+            if isinstance(cond, Iterable):
+                condidx=np.array( [dcond in cond for dcond in data.condition], dtype=np.bool)
+    
             if data!=None:
-                cidx=(data.condition==cond)
-                tmp=data.get_ssd_dist(condition=cond)
+                tmp=data.get_ssd_dist(condition=condidx)
                 ssds=tmp[:,0]
                 nssds=tmp[:,1].astype(np.int)
-                pstop=[np.sum(np.isnan(data.RT[cidx & (data.SSD==cssd)]))/float(nssds[i]) for i,cssd in enumerate(ssds)]                    
+                pstop=[np.sum(np.isnan(data.RT[condidx & (data.SSD==cssd)]))/float(nssds[i]) for i,cssd in enumerate(ssds)]                    
                 pl.bar( ssds-bw/2., pstop, width=bw, alpha=.5)
-            y=self.get_pstop_by_ssd(cond,ssd)
-            pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(cond)))
+            if isinstance(cond, Iterable):
+                for con in cond:
+                    y=self.get_pstop_by_ssd(con,ssd)
+                    pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(con)))
+            else:
+                y=self.get_pstop_by_ssd(cond,ssd)
+                pl.plot(ssd, y, linewidth=lw, label=":".join(self.design.condidx(cond)))
+
             pl.xlim(SSD_lims[0], SSD_lims[1])
             pl.xlabel('SSD')
             pl.ylabel('p(STOP)')
             if subplots:
-                pl.title(":".join(self.design.condidx(cond)))
+                if isinstance(cond, Iterable):
+                    titlab=(",".join( ":".join(self.design.condidx(con)) for con in cond))
+                else:
+                    titlab=(":".join(self.design.condidx(cond)))
+                # long title, guaranteed to fit w matplotlib
+                titlab=("\n".join(wrap(titlab,width=70)))
+                pl.title(titlab, fontsize='x-small')
+                
         if not subplots:
             pl.legend()
         
