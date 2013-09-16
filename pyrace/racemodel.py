@@ -419,7 +419,7 @@ class StopTaskRaceModel(RaceModel):
         if not subplots:
             pl.legend()
         
-    def plot_fit_go(self, dat, lims=(0.001,5), res=100, nbins=20, conditions='all', split_by_response='correct'):
+    def plot_fit_go(self, dat, lims=(0.001,5), res=100, nbins=20, conditions='all', split_by_response='correct', ylim_fixed=True):
         """
         Plot histogram of GO-trials and the model-solution per condition.
 
@@ -439,6 +439,9 @@ class StopTaskRaceModel(RaceModel):
            plot separate histograms/densities depending on the response
              'correct'  : split into correct/incorrect responses
              'response' : split into the possible responses
+
+        ylim_fixed : False, True
+           should the y-axis be fixed across conditions?
         """
         colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
         if isinstance(nbins, int):
@@ -455,6 +458,7 @@ class StopTaskRaceModel(RaceModel):
         b=np.ceil(len(conditions)/float(a))
         
         t=np.linspace(lims[0], lims[1], res)
+        maxy=[]
         for cix,cond in enumerate(conditions):
             pl.subplot(a,b,cix+1)
             if isinstance(cond, int):
@@ -508,6 +512,12 @@ class StopTaskRaceModel(RaceModel):
             if cix==0:
                 pl.legend()
             pl.xlim(lims)
+            maxy.append(pl.ylim()[1])
+        if ylim_fixed:
+            maxy=np.max(maxy)
+            for cix,cond in enumerate(conditions):
+                pl.subplot(a,b,cix+1)
+                pl.ylim(0,maxy)
 
     
     def loglikelihood(self,dat):
