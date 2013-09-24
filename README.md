@@ -7,6 +7,10 @@ Race-Models for RT-data in python
 
 This is work-in-progress and currently only for Stop-Tasks.
 
+Have a look at these ipython-notebooks:
+
+<https://github.com/ihrke/pyrace/tree/notebook_tests>
+
 Mac OS X compilation
 --------------------
 

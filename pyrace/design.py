@@ -9,8 +9,8 @@ class Design:
                      correct response)
         """
         self.set_factors(factors)
-        if len(responses)<=1:
-            raise ValueError("Can't handle less than 2 responses, currently: responses=%s"%(str(responses)))
+#        if len(responses)<=1:
+#            raise ValueError("Can't handle less than 2 responses, currently: responses=%s"%(str(responses)))
         if len(responses)>2:
             print "WARNING: you have a design with more than 2 responses"
             print "  though the code can handle this situation in principle, I've never tested it"
