@@ -9,6 +9,40 @@ from pyrace.models.psslba import pSSLBA_modelA
 import pyrace.crace
 import pyrace as pr
 
+
+class ToyWald_paramspec(pr.Parameters):
+    parnames=['ter',  'b',  'V', 'Vs']
+    lower   =[ 1e-5, 1e-5,  -5,   -5]
+    upper   =[    1,    5,   5,    5]
+
+
+class ModToyWald(pr.StopTaskRaceModel):
+    paramspec=ToyWald_paramspec;
+    
+    def __init__(self, design, pars=None):
+        self.design=design
+        self.sv=1.0
+        if pars!=None:
+            self.set_params(pars)
+        else:
+            self.set_params(self.__class__.paramspec().random())
+        self.set_mixing_probabilities(0,0)
+
+    def set_params(self, pars):
+        self.params=pars
+        go_acc=[]
+        for cond in range(self.design.nconditions()):
+            go_acc.append([ pr.ShiftedWaldAccumulator( pars.b, pars.V, pars.ter, 
+                                                      name='go-'+":".join(self.design.condidx(cond)) ) ])
+        
+        stop_acc=[]
+        for cond in range(self.design.nconditions()):
+            stop_acc.append( pr.ShiftedWaldAccumulator( pars.b, pars.Vs, pars.ter, 
+                                                       name='stop-'+":".join(self.design.condidx(cond)) ) )
+        
+        self.set_accumulators(go_acc, stop_acc)
+
+
 class testCRace(unittest.TestCase):
     def setUp(self):
         pass
@@ -85,6 +119,26 @@ class testCRace(unittest.TestCase):
         badix=np.logical_not(goodix)
         assert np.sum(badix)==0, "num bad idx=%i"%np.sum(badix)
 
+    def test_sswald_likelihood_trials(self):
+        factors=[{'deprivation':['normal', 'sleep']},
+                 {'stimulus':['go']}]
+        responses=['go']
+        design=pr.Design(factors, responses, 'stimulus', name='singlego_wald')
+
+        pars=ModToyWald.paramspec(ter=.3, b=1.0, V=1.0, Vs=2.0);
+        mod=ModToyWald(design, pars)
+        ds=mod.simulate(300)
+
+        print mod
+
+        Ls=StopTaskRaceModel.likelihood_trials(mod, ds)
+        L2=mod.likelihood_trials(ds)
+
+        goodix=(np.abs(Ls-L2)<1e-5)
+        badix=np.logical_not(goodix)
+        assert np.sum(badix)==0, "num bad idx=%i"%np.sum(badix)
+
+        
     def test_loglikelihood(self):
         factors=[{'sleepdep':['normal','deprived']},
                  {'stimulus':['left', 'right']}]

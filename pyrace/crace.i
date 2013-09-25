@@ -37,6 +37,12 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 								  double *pgf, double *ptf,  /* mixing probs */
 								  double *L); /* output */
 
+void sswald_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
+			  					   int *condition, int *response, double *RT, double *SSD, /* data */
+									double *go_gamma, double *go_theta, double *go_alpha,
+									double *stop_gamma, double *stop_theta, double *stop_alpha, 
+									double *pgf, double *ptf, double *L );
+
 %clear (double* );
 %clear (int* );
 
