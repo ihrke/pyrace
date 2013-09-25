@@ -1,13 +1,17 @@
 import itertools
 
 class Design:
-    def __init__(self, factors, responses, response_to_factor):
+    def __init__(self, factors, responses, response_to_factor, name='unknown'):
         """
+        TODO: Need a mapping from responses to factors using a function instead
+              of identity mapping to one of the factors.
+        
         factors : list of dicts
         responses : list of possible response; 
         response_to_factor : string matching one of the factors (used to determine 
                      correct response)
         """
+        self.name=name
         self.set_factors(factors)
 #        if len(responses)<=1:
 #            raise ValueError("Can't handle less than 2 responses, currently: responses=%s"%(str(responses)))

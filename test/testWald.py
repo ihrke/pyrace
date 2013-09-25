@@ -34,7 +34,5 @@ class testWald(PlottingEnabledTestCase):
             pl.legend()
             self.savefig()
         
-     
-        
 if __name__ == '__main__':
     unittest.main()
