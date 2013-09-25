@@ -256,10 +256,12 @@ class StopTaskDataSet(object):
     def get_ssd_dist(self, condition='all'):
         if condition=='all':
             cidx=True
-        elif isinstance(condition, str):
+        elif isinstance(condition, int):
             cidx=(self.condition==condition)
         elif isinstance(condition, np.ndarray):
             cidx=condition
+        else:
+            raise TypeError('condition=%s not usable'%str(condition))
         a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
         return a
         
