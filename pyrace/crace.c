@@ -12,7 +12,8 @@
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
-
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_sf_exp.h>
 
 /** \brief maximum of two elements. */
 #define MAX(a,b) ((a) > (b) ? (a):(b))
@@ -77,9 +78,31 @@ double lba_cdf(double t, double ter, double A, double v, double sv, double b){
   double tmp1=zs*(dnormP(bzumax,0,1)-dnormP(bzu,0,1));
   double tmp2=xx*pnormP(bzumax,0,1)-bminuszu*pnormP(bzu,0,1);
   
-  return MIN( 1, MAX( 0, (1+(tmp1+tmp2)/A)/pnormP(v/sv,0,1)));
+  return (double)MIN( 1, MAX( 0, (1+(tmp1+tmp2)/A)/pnormP(v/sv,0,1)));
 }
 
+double wald_pdf(double t, double alpha, double gamma, double theta){
+  /* Python-side:
+
+    def pdf(self, t):
+        t=np.maximum(t-self.theta, 1e-5) # absorbed into pdf
+        r=self.alpha/(np.sqrt(2*np.pi*(t**3)))*np.exp(- ((self.alpha-self.gamma*t)**2)/(2*t))
+        return np.maximum(0.0, r)
+  */
+  t=MAX(t-theta,1e-5);
+  return (double)MAX(0, (alpha/(sqrt(2*M_PI*(t*t*t))))*exp( -( SQR(alpha-gamma*t))/(2*t)));
+}
+double wald_cdf(double t, double alpha, double gamma, double theta){
+  /* Python-side:
+        
+    def cdf(self,t):
+        t=np.maximum(t-self.theta, 1e-5) # absorbed into cdf
+        r=pnormP( (self.gamma*t-self.alpha)/np.sqrt(t))+np.exp(2*self.alpha*self.gamma)*pnormP(-(self.gamma*t+self.alpha)/(np.sqrt(t)))
+        return np.minimum( np.maximum( 0., r ), 1.)
+  */
+  t=MAX(t-theta,1e-5);
+  return (double)MIN(1, MAX( 0, pnormP( (gamma*t-alpha)/sqrt(t), 0,1)+exp(2*alpha*gamma)*pnormP( -(gamma*t+alpha)/sqrt(t), 0,1) ));
+}
 
 
 double pstop_integrate( double t, void *params ){

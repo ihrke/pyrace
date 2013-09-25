@@ -6,7 +6,8 @@ import sys
 from pyrace import pnormP, dnormP, LBAAccumulator, Design, \
      StopTaskRaceModel, StopTaskDataSet
 from pyrace.models.psslba import pSSLBA_modelA
-import pyrace.crace 
+import pyrace.crace
+import pyrace as pr
 
 class testCRace(unittest.TestCase):
     def setUp(self):
@@ -48,6 +49,21 @@ class testCRace(unittest.TestCase):
         y2=np.array([pyrace.crace.lba_cdf(xx, acc.ter, acc.A, acc.v, acc.sv, acc.b) for xx in x], dtype=np.double)
         assert np.all( np.abs(y-y2)<1e-9)
     
+    def test_wald_pdf(self):
+        acc=pr.ShiftedWaldAccumulator(.2, .5, 1.0)
+        nsamples=10000
+        x=np.linspace(0,10, nsamples)
+        y=acc.pdf(x)
+        y2=np.array([pyrace.crace.wald_pdf(xx, acc.alpha, acc.gamma, acc.theta) for xx in x], dtype=np.double)
+        assert np.all( np.abs(y-y2)<1e-9)
+
+    def test_wald_cdf(self):
+        acc=pr.ShiftedWaldAccumulator(.2, .5, 1.0)        
+        nsamples=10000
+        x=np.linspace(0,10, nsamples)
+        y=acc.cdf(x)
+        y2=np.array([pyrace.crace.wald_cdf(xx, acc.alpha, acc.gamma, acc.theta) for xx in x], dtype=np.double)        
+        assert np.all( np.abs(y-y2)<1e-9)
 
     def test_sslba_likelihood_trials(self):
         factors=[{'sleepdep':['normal','deprived']},

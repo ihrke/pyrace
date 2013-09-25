@@ -38,12 +38,12 @@ class ShiftedWaldAccumulator(Accumulator):
     def pdf(self, t):
         t=np.maximum(t-self.theta, 1e-5) # absorbed into pdf
         r=self.alpha/(np.sqrt(2*np.pi*(t**3)))*np.exp(- ((self.alpha-self.gamma*t)**2)/(2*t))
-        return r
+        return np.maximum(0.0, r)
         
     def cdf(self,t):
         t=np.maximum(t-self.theta, 1e-5) # absorbed into cdf
         r=pnormP( (self.gamma*t-self.alpha)/np.sqrt(t))+np.exp(2*self.alpha*self.gamma)*pnormP(-(self.gamma*t+self.alpha)/(np.sqrt(t)))
-        return r
+        return np.minimum( np.maximum( 0., r ), 1.)
 
     def sample(self, n, upper_limit=np.infty):
         """draw n random samples from this accumulator's distribution"""

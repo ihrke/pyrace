@@ -37,11 +37,16 @@ void sslba_loglikelihood( int nconditions, int nresponses, int ntrials,         
 								  double *pgf, double *ptf,  /* mixing probs */
 								  double *L); /* output */
 
+%clear (double* );
+%clear (int* );
+
 /* just exposing for debugging purposes */
 double pnormP(double x, double mean, double sd);
 double dnormP(double x, double mean, double sd);
+
 double lba_pdf(double t, double ter, double A, double v, double sv, double b);
 double lba_cdf(double t, double ter, double A, double v, double sv, double b);
 
-%clear (double* );
-%clear (int* );
+double wald_pdf(double t, double alpha, double gamma, double theta);
+double wald_cdf(double t, double alpha, double gamma, double theta);
+
