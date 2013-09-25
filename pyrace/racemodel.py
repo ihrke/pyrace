@@ -55,6 +55,17 @@ class StopTaskRaceModel(RaceModel):
         self.design=design
         self.set_accumulators(go_accumulators, stop_accumulators)
         self.set_mixing_probabilities(prob_go_fail, prob_trigger_fail)
+
+    def trans(self, pars):
+        """generic logistic transformation"""
+        x=np.array([trans_logistic(pars[i], a=pars.bound_lower(i), b=pars.bound_upper(i)) for i in range(len(pars))])
+        return x
+    
+    def untrans(self, x):
+        """generic logistic transformation"""        
+        pars=self.paramspec([trans_logistic(x[i], a=self.paramspec.lower[i], b=self.paramspec.upper[i], inverse=True) for i in range(len(x))])
+        return pars
+
         
     def set_mixing_probabilities(self, prob_go_fail, prob_trigger_fail):
         if isinstance(prob_go_fail,Iterable):

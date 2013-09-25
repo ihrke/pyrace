@@ -8,21 +8,30 @@ from .racemodel import *
 class ShiftedWaldAccumulator(Accumulator):
     """
     Shifted Wald distribution (see Watzke and Wagenmakers, 2009).
-
-    Parameters according to their paper:
     
-    alpha - boundary
-    gamma - drift-rate
-    theta - non-decision-time
-
     Note: forget scipy.stats.wald or scipy.stats.invgauss
     """
     def __init__(self, alpha, theta, gamma, name='unknown'):
+        """
+        Shifted Wald distribution (see Watzke and Wagenmakers, 2009).
+
+        Parametrization according to their paper:
+
+        alpha - boundary
+        gamma - drift-rate
+        theta - non-decision-time
+
+        the Wikipedia-parameters correspond to those as follows:
+
+        mu = alpha/gamma
+        lambda=alpha^2
+        theta is just a shift (replace x with x-theta)
+        """
         self.parnames=['alpha', 'theta', 'gamma']
         self.alpha=float(alpha)
         self.theta=float(theta)
         self.gamma=float(gamma)
-        self.mu=self.alpha/self.gamma
+        self.mu=self.alpha/self.gamma  # this is a reparametrisation 
         self.lambd=self.alpha**2
         self.name=name
 
@@ -38,7 +47,6 @@ class ShiftedWaldAccumulator(Accumulator):
 
     def sample(self, n, upper_limit=np.infty):
         """draw n random samples from this accumulator's distribution"""
-
         nnot=n
         rts=[]
         while nnot>0:

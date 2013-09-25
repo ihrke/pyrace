@@ -50,16 +50,6 @@ class pSSLBA(StopTaskRaceModel):
         self.cpars=(go_v,go_ter,go_A,go_b,go_sv, stop_v,stop_ter,stop_A,stop_b,stop_sv, pgf,ptf)
         return self.cpars
 
-    def trans(self, pars):
-        """generic logistic transformation"""
-        x=np.array([trans_logistic(pars[i], a=pars.bound_lower(i), b=pars.bound_upper(i)) for i in range(len(pars))])
-        return x
-    
-    def untrans(self, x):
-        """generic logistic transformation"""        
-        pars=self.paramspec([trans_logistic(x[i], a=self.paramspec.lower[i], b=self.paramspec.upper[i], inverse=True) for i in range(len(x))])
-        return pars
-
     def likelihood_trials(self,dat):
         L=np.zeros(dat.ntrials, dtype=np.double)
         pars=self.get_cpars()+(L,)
