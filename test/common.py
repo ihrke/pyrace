@@ -30,6 +30,8 @@ class PlottingEnabledTestCase(unittest.TestCase):
         print "> saving ", fname
         self.saved.append(fname)
         pl.savefig(fname)
+        pl.clf()
+        pl.close()
 
     def tearDown(self):
         print "> saved ", self.saved

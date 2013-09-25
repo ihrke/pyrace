@@ -161,7 +161,8 @@ class StopTaskRaceModel(RaceModel):
             for acc in gos:
                 r*=(1-acc.cdf( t ))
             return r
-        pstop=scipy.integrate.quad(tmpf, st_acc.ter+SSD, np.infty, args=(go_accs,st_acc,SSD))[0]
+#        pstop=scipy.integrate.quad(tmpf, st_acc.ter+SSD, np.infty, args=(go_accs,st_acc,SSD))[0]
+        pstop=scipy.integrate.quad(tmpf, SSD, np.infty, args=(go_accs,st_acc,SSD))[0]
         return np.maximum( np.minimum( pstop,1), 0) # protect from numerical errors
         
     def likelihood_trials(self, dat):
