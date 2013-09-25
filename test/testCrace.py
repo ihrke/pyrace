@@ -16,7 +16,7 @@ class ToyWald_paramspec(pr.Parameters):
     upper   =[    1,    5,   5,    5]
 
 
-class ModToyWald(pr.StopTaskRaceModel):
+class ModToyWald(pr.SSWald):
     paramspec=ToyWald_paramspec;
     
     def __init__(self, design, pars=None):

@@ -10,8 +10,12 @@ from .swald import *
 from .param import *
 import crace
 
-class SSWALD(StopTaskRaceModel):
-    """Need this layer for reimplementing fast likelihood (in C)"""
+class SSWald(StopTaskRaceModel):
+    """
+    Stop-Signal Wald Race Model (only Wald-accumulators).
+    
+    Need this layer for reimplementing fast likelihood (in C)
+    """
     def get_cpars(self):
         """
         return many numpy arrays containing the parameters for convenient passing to C

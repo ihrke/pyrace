@@ -14,7 +14,9 @@ class SimplexOptimizer(Optimizer):
         self.optfunc=optfunc
         self.optfunc_pars=optfunc_pars
         self.set_startpoint(model.params)
-        self.opts.update({'full_output':True, 'xtol':xtol, 'ftol':ftol})
+        self.opts.update({'full_output':True,
+                          'xtol':xtol, 'ftol':ftol,
+                          'disp':1 if self.trace>=10 else 0})
 
     def set_startpoint(self, pars):
         """pars is a model's paramspec"""
@@ -23,8 +25,8 @@ class SimplexOptimizer(Optimizer):
         self.initial=self.x0.copy()
 
     def optimize(self):
-        if self.trace>=10:
-            print "> Optimize with %s and options %s"%(self.opttype, str(self.opts))
+        if self.trace>=5:
+            print "> Optimize with %s and options %s (%i times)"%(self.opttype, str(self.opts), self.noptimizations)
 
         for i in range(self.noptimizations):
             r=scipy.optimize.fmin(self.optfunc, self.x0, (self.model, self.data, self.trace)+self.optfunc_pars,
