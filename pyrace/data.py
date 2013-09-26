@@ -51,7 +51,7 @@ class StopTaskDataSet(object):
             self.correct[self.condition==cond]=np.where( self.response[self.condition==cond]==corr,  1, 0)
 
         if not self.check():
-            print "WARNING: this dataset is not consistent! Run dataset.check(verbose=True) to check!"
+            print "WARNING: dataset '%s' is not consistent! Run dataset.check(verbose=True) to check!"%self.name
 
     def from_dict(self, data):
         self.org_data=data

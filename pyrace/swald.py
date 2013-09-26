@@ -7,7 +7,7 @@ from .racemodel import *
 
 class ShiftedWaldAccumulator(Accumulator):
     """
-    Shifted Wald distribution (see Watzke and Wagenmakers, 2009).
+    Shifted Wald distribution (see Matzke and Wagenmakers, 2009).
     
     Note: forget scipy.stats.wald or scipy.stats.invgauss
     """

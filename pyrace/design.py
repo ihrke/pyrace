@@ -58,7 +58,7 @@ class Design:
             return self.factors_from_int[conditionidx][self.response_to_factor_idx]
     
     def __repr__(self):
-        r="<Design>\n"
+        r="<Design '%s'>\n"%self.name
         for k,v in self.factor_dict.items():
             r+=" %s: %s\n"%(str(k),str(v))
         r+=" "+"-"*20+"\n"

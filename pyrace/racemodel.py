@@ -14,7 +14,7 @@ class Accumulator:
         self.parnames=[]
         self.name=""
     def __repr__(self):
-        return self.__class__.__name__+"(%s; %s)"%( self.name, ",".join([ "=".join([k,str(self.__dict__[k])]) for k in self.parnames]))
+        return self.__class__.__name__+"(%s; %s)"%( self.name, ",".join([ "=".join([k,"%.2f"%(self.__dict__[k])]) for k in self.parnames]))
     def pdf(self,t):
         raise NotImplementedError
     def cdf(self,t):
