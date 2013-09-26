@@ -27,7 +27,7 @@ def opt_func_deviance_precalc( x, mod, data, trace ):
 
 
 class Optimizer:
-    def set_general_opts( self, noptimizations=1, trace=10, pool=None, ncpu=None, **kwargs ):
+    def set_general_opts( self, noptimizations=1, progressbar=False, trace=10, pool=None, ncpu=None, **kwargs ):
         """
         trace : int; on a scale from 0-100 verbosity (no output to max output)
         
@@ -42,6 +42,7 @@ class Optimizer:
         self.opts={}
         self.opts.update(kwargs)
         self.results=[]
+        self.progressbar=progressbar
         self.result=None
         if pool!=None:
             self.pool=pool

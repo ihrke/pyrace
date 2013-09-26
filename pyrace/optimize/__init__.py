@@ -2,11 +2,13 @@ import numpy as np
 import scipy
 import pylab as pl
 import multiprocessing as mp
+import time
 import copy
 
 #from .objective import *
 from .simplex import *
 from .diffev import *
+from ..tools import ProgressBar
     
 # --------------------------------------------------------------------------------
 # MULTI-core (simultaneously for different datasets)
@@ -19,7 +21,7 @@ def _run_optim( optimizer ):
     optimizer.optimize()
     return optimizer
 
-def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, optimizer_pars={}):
+def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, progressbar=False, optimizer_pars={}):
     """
     data : list of datasets which should be separately fit with the same model
     start_points : parameter set used as starting point for each dataset or None (than
@@ -39,7 +41,21 @@ def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, optimizer_
        for io,opt in enumerate(optimizers):
            optimizers[io].set_startpoint(start_points[io])
 
-    opts=pool.map( _run_optim, optimizers )
+
+    if not progressbar:
+        opts=pool.map( _run_optim, optimizers )
+    else:
+        jobs=[pool.apply_async( _run_optim, (opt,) ) for opt in optimizers]
+        prog=ProgressBar(len(jobs))
+        waiting=True
+        while waiting:
+            time.sleep(.1)
+            ndone=np.array([job.ready() for job in jobs]).sum()
+
+            prog.animate(ndone)
+            if ndone==len(jobs):
+                waiting=False
+        opts=[job.get() for job in jobs]
 
     return opts
 

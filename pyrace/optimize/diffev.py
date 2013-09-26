@@ -1,4 +1,5 @@
 from .objective import *
+from ..tools import ProgressBar
 import copy
 
 __all__=['DEOptimizer']
@@ -18,7 +19,7 @@ def _flatten(l):
     return [item for sublist in l for item in sublist]
 
 def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_max=1000,
-                      nxtol=10, xtol=None, ftol=None, verbosity=0,
+                      nxtol=10, xtol=None, ftol=None, verbosity=0, progressbar=False,
                       trace_stats=None, save_stats=None):
     """
     Differential Evolution DE/rand/1/bin according to
@@ -55,6 +56,11 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_m
            'max':[],
            'mean':[],
            'median':[]}
+
+    if progressbar:
+        progress=ProgressBar(gen_max)
+    else:
+        progress=lambda x: None
 
     best=[None for _ in range(nxtol)] # keep best individuals for nxtol generations
     prevmean=np.nan
@@ -100,6 +106,7 @@ def de_rand_1_bin( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_m
                                                                         last_stat['median'],
                                                                         last_stat['min'],last_stat['max'])
         niter+=1
+        progress(niter)
 
         ## convergence criteria
         if niter>gen_min:
@@ -126,7 +133,7 @@ def _eval_pop( candidates, objective, objargs ):
     return res
 
 def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, gen_max=1000,
-                      nxtol=10, xtol=None, ftol=None, verbosity=0,
+                      nxtol=10, xtol=None, ftol=None, verbosity=0, progressbar=False,
                       trace_stats=None, save_stats=None, pool=None, ncpu=4 ):
     """
     same as de_rand_1_bin except that each population is evaluated in parallel.
@@ -165,6 +172,10 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, ge
     best=[None for _ in range(nxtol)] # keep best individuals for nxtol generations
     prevmean=np.nan
     nxtoli=0
+    if progressbar:
+        progress=ProgressBar(gen_max)
+    else:
+        progress=lambda x: None
     while not stopcrit:
         # build candidate pop        
         pop_new=[]
@@ -207,7 +218,7 @@ def de_rand_1_bin_mp( pop_ini, objective, objargs=(), F=.5, CR=0, gen_min=10, ge
                                                                         last_stat['median'],
                                                                         last_stat['min'],last_stat['max'])
         niter+=1
-
+        progress(niter)
         ## convergence criteria
         if niter>gen_min:
             if niter>=gen_max:
@@ -250,9 +261,11 @@ class DEOptimizer(Optimizer):
         self.optfunc_pars=optfunc_pars
         self.pop_size=pop_size
         self.opts.update({"F":F, 'CR':CR, "gen_max":gen_max, 'save_stats':save_stats, 'trace_stats':trace_stats,
-                          'xtol':xtol, 'ftol':ftol, 'nxtol':nxtol})
+                          'xtol':xtol, 'ftol':ftol, 'nxtol':nxtol, 'progressbar':self.progressbar})
 
-    def optimize(self, pop_ini=None):
+    def optimize(self, pop_ini=None, progressbar=False):
+        oldprogressbar=self.opts['progressbar']
+        self.opts.update({'progressbar':progressbar})
         if pop_ini!=None:
             self.pop_ini=pop_ini
         if self.trace>=10:
@@ -280,7 +293,8 @@ class DEOptimizer(Optimizer):
             if self.trace>=10:
                 print "> Optimization run %i: Bestscore: "%(i+1),self.get_best_score()
                 print "> Optimization run %i: Best: "%(i+1),self.get_best()
-        
+
+        self.opts.update({'progressbar':oldprogressbar}) # reset
         return self.get_best(), self.get_best_score()
 
     def plot_stats(self, log=False):

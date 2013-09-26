@@ -41,6 +41,9 @@ class ProgressBar:
         self.width = 50
         self.__update_amount(0)
 
+    def __call__(self, iter):
+        self.animate(iter)
+
     def animate(self, iter):
         print "\r", self,
 #        print('\r', self, end='')
