@@ -99,6 +99,22 @@ class testCRace(unittest.TestCase):
         y2=np.array([pyrace.crace.wald_cdf(xx, acc.alpha, acc.gamma, acc.theta) for xx in x], dtype=np.double)        
         assert np.all( np.abs(y-y2)<1e-9)
 
+    def test_lognorm_pdf(self):
+        acc=pr.ShiftedLogNormalAccumulator(.2, .5, 1.0)
+        nsamples=10000
+        x=np.linspace(0,10, nsamples)
+        y=acc.pdf(x)
+        y2=np.array([pyrace.crace.slognorm_pdf(xx, acc.ter, acc.mu, acc.sigma) for xx in x], dtype=np.double)
+        assert np.all( np.abs(y-y2)<1e-9)
+
+    def test_lognorm_cdf(self):
+        acc=pr.ShiftedLogNormalAccumulator(.2, .5, 1.0)
+        nsamples=10000
+        x=np.linspace(0,10, nsamples)
+        y=acc.cdf(x)
+        y2=np.array([pyrace.crace.slognorm_cdf(xx, acc.ter, acc.mu, acc.sigma) for xx in x], dtype=np.double)
+        assert np.all( np.abs(y-y2)<1e-9)
+
     def test_sslba_likelihood_trials(self):
         factors=[{'sleepdep':['normal','deprived']},
                  {'stimulus':['left', 'right']}]

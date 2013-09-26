@@ -14,7 +14,8 @@ class Accumulator:
         self.parnames=[]
         self.name=""
     def __repr__(self):
-        return self.__class__.__name__+"(%s; %s)"%( self.name, ",".join([ "=".join([k,"%.2f"%(self.__dict__[k])]) for k in self.parnames]))
+        return self.__class__.__name__+"(%s; %s)"%( self.name, ",".join([ "=".join([k,"%.2f"%(self.__dict__[k])])
+                                                                          for k in self.parnames]))
     def pdf(self,t):
         raise NotImplementedError
     def cdf(self,t):
@@ -63,7 +64,8 @@ class StopTaskRaceModel(RaceModel):
     
     def untrans(self, x):
         """generic logistic transformation"""        
-        pars=self.paramspec([trans_logistic(x[i], a=self.paramspec.lower[i], b=self.paramspec.upper[i], inverse=True) for i in range(len(x))])
+        pars=self.paramspec([trans_logistic(x[i], a=self.paramspec.lower[i], b=self.paramspec.upper[i], inverse=True)
+                             for i in range(len(x))])
         return pars
 
         
@@ -184,11 +186,11 @@ class StopTaskRaceModel(RaceModel):
             
         L=np.zeros(dat.ntrials,dtype=np.float)*np.nan
         for cond in range(self.design.nconditions()):
-            print cond, self.design.condidx(cond)
+            #print cond, self.design.condidx(cond)
             pgf=self.prob_go_fail[cond]
             ptf=self.prob_trigger_fail[cond]
             
-            # Failed go: GO(NA) = pgf
+            # Failed go: GO(NA) = pgfprint
             idx=(dat.condition==cond) & (np.isnan(dat.SSD)) & (dat.response<0)
             L[idx]=pgf
             

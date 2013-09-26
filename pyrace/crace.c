@@ -13,7 +13,7 @@
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
-#include <gsl/gsl_sf_exp.h>
+#include <gsl/gsl_sf_erf.h>
 
 /** \brief maximum of two elements. */
 #define MAX(a,b) ((a) > (b) ? (a):(b))
@@ -48,6 +48,29 @@ double dnormP(double x, double mean, double sd){
   return (double)(ABS(x-mean)<(7*sd)) ? (gsl_ran_gaussian_pdf(x-mean,sd)) : (0);
 }
 
+double slognorm_pdf(double t, double ter, double mu, double sigma){
+  /* Python:
+        t=np.maximum(t-self.ter, 1e-5) # absorbed into pdf
+        r=1./(t*np.sqrt(2*np.pi)*self.sigma)*np.exp(-(np.log(t)-self.mu)**2/(2*self.sigma**2))
+        return np.maximum(0.0, r)
+  */
+  t=MAX(t-ter, 1e-5);
+  double r=1./(t*sqrt(2*M_PI)*sigma)*exp(- SQR(log(t)-mu)/(2*SQR(sigma)) );
+  return (double)MAX(0,r);
+
+}
+
+double slognorm_cdf(double t, double ter, double mu, double sigma){
+  /* Python:
+
+        t=np.maximum(t-self.ter, 1e-5) # absorbed into cdf
+        r=.5+.5*erf((np.log(t)-self.mu)/(np.sqrt(2)*self.sigma))
+        return np.minimum( np.maximum( 0., r ), 1.)
+   */
+   t=MAX(t-ter, 1e-5);
+   double r=.5+.5*gsl_sf_erf( (log(t)-mu)/(sqrt(2)*sigma));
+   return (double)MIN( MAX( 0, r ), 1);
+}
 
 
 double lba_pdf(double t, double ter, double A, double v, double sv, double b){

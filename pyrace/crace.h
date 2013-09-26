@@ -15,10 +15,16 @@ void sswald_loglikelihood( int nconditions, int nresponses, int ntrials,        
 
 double pnormP(double x, double mean, double sd);
 double dnormP(double x, double mean, double sd);
+
 double lba_pdf(double t, double ter, double A, double v, double sv, double b);
 double lba_cdf(double t, double ter, double A, double v, double sv, double b);
 
 double wald_pdf(double t, double alpha, double gamma, double theta);
 double wald_cdf(double t, double alpha, double gamma, double theta);
+
+double slognorm_pdf(double t, double ter, double mu, double sigma);
+double slognorm_cdf(double t, double ter, double mu, double sigma);
+
+
 
 #endif
