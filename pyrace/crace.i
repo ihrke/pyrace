@@ -43,6 +43,13 @@ void sswald_loglikelihood( int nconditions, int nresponses, int ntrials,        
 									double *stop_gamma, double *stop_theta, double *stop_alpha, 
 									double *pgf, double *ptf, double *L );
 
+void sslognorm_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
+			    			  int *condition, int *response, double *RT, double *SSD, /* data */
+							  double *go_ter, double *go_mu, double *go_sigma,
+							  double *stop_ter, double *stop_mu, double *stop_sigma,
+							  double *pgf, double *ptf, double *L );
+
+
 %clear (double* );
 %clear (int* );
 

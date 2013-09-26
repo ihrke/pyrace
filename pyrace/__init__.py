@@ -5,6 +5,7 @@ from .lba import *
 from .swald import *
 from .sswald import *
 from .slognorm import *
+from .sslognorm import *
 from .psslba import *
 from .racemodel import *
 from .optimize import *

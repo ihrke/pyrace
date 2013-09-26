@@ -1,13 +1,5 @@
 import numpy as np
-import pandas as pd
-import scipy
-from collections import namedtuple
-
-from .tools import *
 from .racemodel import *
-from .data import *
-from .swald import *
-from .param import *
 import crace
 
 class SSWald(StopTaskRaceModel):

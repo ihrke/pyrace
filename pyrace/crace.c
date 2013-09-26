@@ -477,3 +477,148 @@ void sswald_loglikelihood( int nconditions, int nresponses, int ntrials,        
   /* clean up */
   gsl_integration_workspace_free(work);
 }
+
+/*---------------------------------------------------------------------------*/
+/* LOGNORMAL Model (only LN accs)
+/*---------------------------------------------------------------------------*/
+
+
+struct pstop_params_lognorm {
+  int nresponses; int stride;
+  double *gter; double *gmu; double *gsigma;
+  double ster; double smu; double ssigma; double SSD;
+};
+
+double pstop_integrate_lognorm( double t, void *params ){
+  void *pptr=params;
+  int nresponses=*((int*)pptr);   pptr+=sizeof(int);
+  int stride=*((int*)pptr);       pptr+=sizeof(int);
+  double *gter=*((double**)pptr);   pptr+=sizeof(double*);
+  double *gmu=*((double**)pptr); pptr+=sizeof(double*);
+  double *gsigma=*((double**)pptr);   pptr+=sizeof(double*);
+  double ster=*((double*)pptr);     pptr+=sizeof(double);
+  double smu=*((double*)pptr);   pptr+=sizeof(double);
+  double ssigma=*((double*)pptr);     pptr+=sizeof(double);
+  double SSD=*((double*)pptr);
+
+  int i, idx;
+  double r=slognorm_pdf(t-SSD, ster, smu, ssigma);
+
+  for(i=0; i<nresponses; i++ ){
+	 idx=i*stride;
+	 r*=(1-slognorm_cdf(t, gter[idx], gmu[idx], gsigma[idx]));
+  }
+  return r;
+}
+
+
+void sslognorm_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
+			    			  int *condition, int *response, double *RT, double *SSD, /* data */
+							  double *go_ter, double *go_mu, double *go_sigma,
+							  double *stop_ter, double *stop_mu, double *stop_sigma,
+							  double *pgf, double *ptf, double *L ){
+  int i, j, idx;
+
+  /* setup for numerical integration of pstop */
+  gsl_integration_workspace * work =gsl_integration_workspace_alloc (1000);
+  double result, error;
+  int nerror=0;
+  int errcode;
+  int neval;
+  gsl_function F;
+  F.function = &pstop_integrate_lognorm;
+  struct pstop_params_lognorm params;
+  F.params=&params;
+  params.nresponses=nresponses;
+  params.stride=nconditions;
+  double pstop;
+  gsl_set_error_handler_off();
+
+  double dens, densgo, densstop, tmp;
+
+  for( i=0; i<ntrials; i++ ){ /* calc L for each datapoint */
+	 /* failed GO */
+	 if( isnan(SSD[i]) && response[i]<0 ){
+		L[i]=pgf[ condition[i] ];
+	 }
+
+	 /* successful stop */
+	 else if( response[i]<0 && isfinite(SSD[i]) ){
+		//dprintf("succstop, trial=%i\n",i);
+		/* set parameters for integration */
+		params.gter  =&(go_ter  [condition[i]]);
+		params.gmu   =&(go_mu   [condition[i]]);
+		params.gsigma=&(go_sigma[condition[i]]);
+
+		params.ster  =(stop_ter  [condition[i]]);
+		params.smu   =(stop_mu   [condition[i]]);
+		params.ssigma=(stop_sigma[condition[i]]);
+		params.SSD = SSD[i];
+
+		/*		errcode=gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); */
+		errcode=gsl_integration_qagiu (&F, SSD[i], 1e-5, 1e-5, 1000, work, &result, &error);
+		if(errcode){
+		  if(nerror==0){
+			 dprintf("ERROR during integration, errcode=%i, abserr=%f, result=%f\n", errcode, error, result);
+		  }
+		  nerror++;
+		}
+		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
+		pstop=result;
+		L[i]=pgf[condition[i]] + (1-pgf[condition[i]])*(1-ptf[condition[i]])*pstop;
+	 }
+
+	 /* go-trials with response */
+	 else if( response[i]>=0 && isnan(SSD[i]) ){
+		dens=1.0;
+        //double slognorm_pdf(double t, double ter, double mu, double sigma);
+		for( j=0; j<nresponses; j++ ){
+		  idx=condition[i]+(j*nconditions);
+		  if( j==response[i] ){
+			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=slognorm_pdf(RT[i], go_ter[idx], go_mu[idx], go_sigma[idx]);
+		  } else {
+			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=(1-slognorm_cdf(RT[i], go_ter[idx], go_mu[idx], go_sigma[idx]));
+		  }
+		}
+		if( (dens<0) || !isfinite(dens) )
+		  dens=0.0;
+		L[i]=(1-pgf[condition[i]])*dens;
+	 }
+
+	 /* STOP-trials with response
+		 STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
+	  */
+	 else if( response[i]>=0 && isfinite(SSD[i]) ){
+		idx=condition[i];
+		densgo=1.0;
+		densstop=(1-slognorm_cdf(RT[i]-SSD[i], stop_ter[idx], stop_mu[idx], stop_sigma[idx]));
+
+		for( j=0; j<nresponses; j++ ){
+		  idx=condition[i]+(j*nconditions);
+		  if( j==response[i] ){
+			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 tmp=slognorm_pdf(RT[i], go_ter[idx], go_mu[idx], go_sigma[idx]);
+			 densstop*=tmp;
+			 densgo*=tmp;
+		  } else {
+			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 tmp=(1-slognorm_cdf(RT[i], go_ter[idx], go_mu[idx], go_sigma[idx]));
+			 densstop*=tmp;
+			 densgo*=tmp;
+		  }
+		}
+
+		L[i]=(1-pgf[condition[i]])*(ptf[condition[i]]*densgo+(1-ptf[condition[i]])*densstop);
+	 }
+
+	 /* invalid -> error message */
+	 else {
+		dprintf("ERROR: trial %i has not been processed by loglikelihood!\n",i);
+	 }
+  }
+
+  /* clean up */
+  gsl_integration_workspace_free(work);
+}
