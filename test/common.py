@@ -26,7 +26,7 @@ class PlottingEnabledTestCase(unittest.TestCase):
             curframe = inspect.currentframe()
             calname = inspect.getouterframes(curframe, 2)[1][3]
             fname="%03i_%s.png"%(self.numplots(),calname)
-        fname=os.path.join(self.output_dir, fname)
+        fname=os.path.abspath(os.path.join(self.output_dir, fname))
         print "> saving ", fname
         self.saved.append(fname)
         pl.savefig(fname)

@@ -1,9 +1,9 @@
 from common import *
-from pyrace import ShiftedWaldAccumulator
+from pyrace import ShiftedLogNormalAccumulator
 
-class testWald(PlottingEnabledTestCase):
-    def test_wald_acc(self):
-        acc=ShiftedWaldAccumulator(.2, .2, 1.0)
+class testLogNorm(PlottingEnabledTestCase):
+    def test_lognorm_acc(self):
+        acc=ShiftedLogNormalAccumulator(.2, .2, .1)
         nsamples=10000
         x=np.linspace(0,10, nsamples)
         self.assertAlmostEqual(scipy.integrate.quad(acc.pdf, 0, np.infty)[0], 1)
@@ -11,7 +11,7 @@ class testWald(PlottingEnabledTestCase):
         assert abs( acc.cdf(10000)-1)<1e-4
 
     def test_sample(self):
-        acc=ShiftedWaldAccumulator(.2, .2, 2.0)
+        acc=ShiftedLogNormalAccumulator(.2, .2, .20)
         nsamples=100000
         x=np.linspace(0,10, nsamples)
         

@@ -4,6 +4,7 @@ from .tools import *
 from .lba import *
 from .swald import *
 from .sswald import *
+from .slognorm import *
 from .psslba import *
 from .racemodel import *
 from .optimize import *
