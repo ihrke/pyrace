@@ -1,17 +1,12 @@
 import numpy as np
-import pandas as pd
-import scipy
-from collections import namedtuple
-
-from .tools import *
 from .racemodel import *
-from .data import *
 from .lba import *
-from .param import *
 import crace
 
 class pSSLBA(StopTaskRaceModel):
     """Need this layer for reimplementing fast likelihood (in C)"""
+    accumulator_type=LBAAccumulator
+
     def get_cpars(self):
         """
         return many numpy arrays containing the parameters for convenient passing to C

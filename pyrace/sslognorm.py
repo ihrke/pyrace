@@ -1,5 +1,6 @@
 import numpy as np
 from .racemodel import *
+from .slognorm import *
 import crace
 
 class SSLogNormal(StopTaskRaceModel):
@@ -8,6 +9,8 @@ class SSLogNormal(StopTaskRaceModel):
     
     Need this layer for reimplementing fast likelihood (in C)
     """
+    accumulator_type=ShiftedLogNormalAccumulator
+
     def get_cpars(self):
         """
         return many numpy arrays containing the parameters for convenient passing to C

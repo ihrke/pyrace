@@ -1,5 +1,6 @@
 import numpy as np
 from .racemodel import *
+from .swald import *
 import crace
 
 class SSWald(StopTaskRaceModel):
@@ -8,6 +9,8 @@ class SSWald(StopTaskRaceModel):
     
     Need this layer for reimplementing fast likelihood (in C)
     """
+    accumulator_type=ShiftedWaldAccumulator # define which accumulators are used by this model (exclusively)
+
     def get_cpars(self):
         """
         return many numpy arrays containing the parameters for convenient passing to C
