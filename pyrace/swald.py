@@ -11,7 +11,8 @@ class ShiftedWaldAccumulator(Accumulator):
     
     Note: forget scipy.stats.wald or scipy.stats.invgauss
     """
-    def __init__(self, alpha, theta, gamma, name='unknown'):
+    parnames=['alpha', 'theta', 'gamma']
+    def __init__(self, alpha=np.nan, theta=np.nan, gamma=np.nan, name='unknown'):
         """
         Shifted Wald distribution (see Watzke and Wagenmakers, 2009).
 
@@ -27,7 +28,6 @@ class ShiftedWaldAccumulator(Accumulator):
         lambda=alpha^2
         theta is just a shift (replace x with x-theta)
         """
-        self.parnames=['alpha', 'theta', 'gamma']
         self.alpha=float(alpha)
         self.theta=float(theta)
         self.gamma=float(gamma)

@@ -6,13 +6,14 @@ from .tools import *
 from .racemodel import *
 
 class LBAAccumulator(Accumulator):
-    def __init__(self, ter, A, v, sv, b, name='unknown'):
-        self.parnames=['ter','A','v','sv','b']
-        self.ter=ter
-        self.A=A
-        self.v=v
-        self.sv=sv
-        self.b=b
+    parnames=['ter','A','v','sv','b']
+
+    def __init__(self, ter=np.nan, A=np.nan, v=np.nan, sv=np.nan, b=np.nan, name='unknown'):
+        self.ter=float(ter)
+        self.A=float(A)
+        self.v=float(v)
+        self.sv=float(sv)
+        self.b=float(b)
         self.name=name
 
     def pdf(self, t):
