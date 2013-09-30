@@ -84,16 +84,30 @@ class VarWaldAccumulator(Accumulator):
         t=np.maximum(t-self.theta, 1e-5) # absorbed into cdf
 
         sqrt_t=np.sqrt(t)
+
+        # reparametrization
+        a=self.A/2.0
+        k=self.alpha-self.A/2.0
+        l=self.gamma
+
         if self.A<1e-10: # this is the solution without starting-point variability
             r=pnormP( (self.gamma*t-self.alpha)/sqrt_t)+np.exp(2*self.alpha*self.gamma)*pnormP(-(self.gamma*t+self.alpha)/(sqrt_t))
         elif self.gamma<1e-10:
-            r=(( -(k+a)*(2*pnormP( (k+a)/sqrt_t)-1) - (k-a)*(2*pnormP(-(k-a)/sqrt_t)-1))/(2*a)) \
+            r=(( -(k+a)*(2*pnormP( (k+a)/sqrt_t)-1)
+                 -(k-a)*(2*pnormP(-(k-a)/sqrt_t)-1))/(2*a)) \
               + (1 + np.exp(-.5*(k-a)**2/t - .5*np.log(2) - .5*np.log(np.pi) + .5*np.log(t) - np.log(a))
-                 -   np.exp(-.5*(k-1)**2/t - .5*np.log(2) - .5*np.log(np.pi) + .5*np.log(t) - np.log(a)))
+                 -   np.exp(-.5*(k+a)**2/t - .5*np.log(2) - .5*np.log(np.pi) + .5*np.log(t) - np.log(a)))
         else:
-            r=0
+            t1=np.exp( .5*np.log(t)-.5*np.log(2*np.pi) ) * (  np.exp( -((k-a-t*l)**2/t)/2.)
+                                                            - np.exp( -((k+a-t*l)**2/t)/2.) ) # ok
+            t2=a+(   np.exp(2*l*(k+a)+np.log(pnormP(-(k+a+t*l)/sqrt_t)))
+                   - np.exp(2*l*(k-a)+np.log(pnormP(-(k-a+t*l)/sqrt_t))) )/(2*l) # ok
+            t4= (.5*(t*l-a-k+.5/l)) * ( 2*pnormP((k+a)/sqrt_t-sqrt_t*l)-1) \
+               + .5*(k-a-t*l-.5/l)*( 2*pnormP((k-a)/sqrt_t-sqrt_t*l)-1)
+            r=(t4+t2+t1)/(2*a)
 
-        return np.minimum( np.maximum( 0., r ), 1.)
+
+        return np.minimum( np.maximum( 0., np.where( np.isnan(r), 0, r) ), 1.)
 
     def sample(self, n, upper_limit=np.infty):
         """draw n random samples from this accumulator's distribution"""
