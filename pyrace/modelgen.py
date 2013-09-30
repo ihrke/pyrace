@@ -25,9 +25,9 @@ class {modelname}({parentclass}):
         go_acc=[ [None for resp in range(self.design.nresponses())] for cond in range(self.design.nconditions())]
         stop_acc=[ None for cond in range(self.design.nconditions())]
 
-        {go_accumulator_definition}
+{go_accumulator_definition}
 
-        {stop_accumulator_definition}
+{stop_accumulator_definition}
 
         self.set_accumulators(go_acc, stop_acc)
     """
@@ -47,10 +47,13 @@ def generate_model( modname, design, modelclass, model_table, as_string=False):
         modpars += list(model_table[accpar].unique())
     modpars=np.unique(modpars)
 
-    tpl="""go_acc[{cond}][{resp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))"""
+    tpl="""        go_acc[{cond}][{resp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
     go_acc_def=""
-    for cond,resp in itertools.product( range(design.nconditions()), range(design.nresponses())):
-        parlist={k:v for k}
+    for cond,resp in itertools.product( range(design.nconditions()), design.get_responses()):
+        print cond, resp
+        pard={k:model_table[(model_table.condidx==cond) & (model_table.response==resp)][k][0] for k in accpars}
+        print pard
+        parlist=",".join(["%s=pars.%s"%(k,v[0]) for k,v in pard.items()])
         go_acc_def+=tpl.format(cond=cond,resp=resp, parlist=parlist)
 
 
@@ -60,11 +63,12 @@ def generate_model( modname, design, modelclass, model_table, as_string=False):
         parentclass="pr."+(modelclass.__name__.split(".")[-1]),
         lower=",".join(["0" for i in range(len(modpars))]),
         upper=",".join(["1" for i in range(len(modpars))]),
-        go_accumulator_definition="",
+        go_accumulator_definition=go_acc_def,
         stop_accumulator_definition=""
     )
     loc_dict={}
-    exec(modelstr, globals(), loc_dict)
+    print modelstr
+    #exec(modelstr, globals(), loc_dict)
 
     return loc_dict[modname]
 
@@ -90,6 +94,9 @@ if __name__=="__main__":
     #sio.write(model_tab)
     df=pd.read_csv(sio, skipinitialspace=True, )
     #print df
+
+    #mocl2=modelspec("TestModel2", design, pr.SSWald,
+    #                V=Par('gamma', varies=['gostop', 'correct']))
 
     factors=[{'deprivation':['normal', 'sleep']},
              {'stimulus':['left', 'right']}]
