@@ -56,6 +56,10 @@ class StopTaskRaceModel(RaceModel):
         self.design=design
         self.set_accumulators(go_accumulators, stop_accumulators)
         self.set_mixing_probabilities(prob_go_fail, prob_trigger_fail)
+    def copy(self):
+        """for multiprocessing"""
+        m=self.__class__(self.design, self.go_accumulators, self.stop_accumulators, self.prob_go_fail,self.prob_trigger_fail)
+        return m
 
     def trans(self, pars):
         """generic logistic transformation"""
@@ -589,3 +593,4 @@ class StopTaskRaceModel(RaceModel):
         
     def BIC(self, dat):
         return self.npars()*np.log(dat.ntrials)-2*self.loglikelihood(dat)
+
