@@ -37,12 +37,20 @@ class testWald(PlottingEnabledTestCase):
 
 import rpy2.rinterface as rinterface
 import rpy2.robjects as robjects
+import pyrace.crace
 
 ## load the R-code by Logan
 r = robjects.r
 r['source']('./misc/UWA.R')
 
 class testVarWald(PlottingEnabledTestCase):
+    def setUp(self):
+        PlottingEnabledTestCase.setUp(self)
+        self.test_pars=[
+            {'A':1.0, 'b':2.0, 'v':.5, 'ter':.1},
+            {'A':1.2, 'b':2.0, 'v':.6, 'ter':.5},
+            {'A':1.2, 'b':2.0, 'v':0, 'ter':.5}]
+
     def cmp_pdf_against_R(self, pars):
         """
         check the plots, too
@@ -60,7 +68,7 @@ class testVarWald(PlottingEnabledTestCase):
 
         yr=r['digt'](rx, k=pars['k'], l=pars['l'], a=pars['a'])
         y=np.array(yr)
-        assert np.all(y-acc.pdf(x) < 1e-10), str(pars)
+        assert np.all(np.abs(y-acc.pdf(x)) < 1e-10), str(pars)
 
         pl.clf()
         pl.plot(x, y, color='red', label='R', linewidth=3)
@@ -87,7 +95,7 @@ class testVarWald(PlottingEnabledTestCase):
 
         yr=r['pigt'](rx, k=pars['k'], l=pars['l'], a=pars['a'])
         y=np.array(yr)
-        assert np.all(y-acc.cdf(x) < 1e-10), str(pars)
+        assert np.all(np.abs(y-acc.cdf(x)) < 1e-10), str(pars)
 
         pl.clf()
         pl.plot(x, y, color='red', label='R', linewidth=3)
@@ -96,26 +104,39 @@ class testVarWald(PlottingEnabledTestCase):
         pl.legend()
         self.savefig()
 
+    def cmp_pdf_against_crace(self, pars):
+        pars.update({'k':pars['b']-pars['A']/2.0,
+                     'l':pars['v'],
+                     'a':pars['A']/2.0})
+        acc=VarWaldAccumulator( theta=pars['ter'],
+                                gamma=pars['v'],
+                                alpha=pars['b'],
+                                A=pars['A'])
+        nsamples=1000
+        x=np.linspace(0,3,nsamples)
+
+        y=np.array([pyrace.crace.varwald_pdf(xx, pars['b'], pars['v'], pars['ter'], pars['A'] ) for xx in x])
+        assert np.all(np.abs(y-acc.pdf(x)) < 1e-10), str(pars)
+
+        pl.clf()
+        pl.plot(x, y, color='red', label='R', linewidth=3)
+        pl.plot(x, acc.pdf(x), color='blue', label='python')
+
+        pl.title(str(pars))
+        pl.legend()
+        self.savefig()
 
     def test_varwald_pdf_against_R(self):
-        pars={'A':1.0, 'b':2.0, 'v':.5, 'ter':.1}
-        self.cmp_pdf_against_R(pars)
+        for pars in self.test_pars:
+            self.cmp_pdf_against_R(pars)
 
-        pars={'A':1.2, 'b':2.0, 'v':.6, 'ter':.5}
-        self.cmp_pdf_against_R(pars)
-
-        pars={'A':1.2, 'b':2.0, 'v':0, 'ter':.5}
-        self.cmp_pdf_against_R(pars)
+    def test_varwald_pdf_against_crace(self):
+        for pars in self.test_pars:
+            self.cmp_pdf_against_crace(pars)
 
     def test_varwald_cdf_against_R(self):
-        pars={'A':1.0, 'b':2.0, 'v':.5, 'ter':.1}
-        self.cmp_cdf_against_R(pars)
-
-        pars={'A':1.2, 'b':2.0, 'v':.6, 'ter':.5}
-        self.cmp_cdf_against_R(pars)
-
-        pars={'A':1.2, 'b':2.0, 'v':0, 'ter':.5}
-        self.cmp_cdf_against_R(pars)
+        for pars in self.test_pars:
+            self.cmp_cdf_against_R(pars)
 
     def test_varwald_acc(self):
         pars={'A':1.0, 'b':2.0, 'v':.5, 'ter':.1}

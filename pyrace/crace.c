@@ -104,6 +104,14 @@ double lba_cdf(double t, double ter, double A, double v, double sv, double b){
   return (double)MIN( 1, MAX( 0, (1+(tmp1+tmp2)/A)/pnormP(v/sv,0,1)));
 }
 
+double varwald_pdf(double t, double alpha, double gamma, double theta, double A){
+    return 0.0;
+}
+
+double varwald_cdf(double t, double alpha, double gamma, double theta, double A){
+    return 0.0;
+}
+
 double wald_pdf(double t, double alpha, double gamma, double theta){
   /* Python-side:
 
