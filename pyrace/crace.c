@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include "crace.h"
 
 /** WARNING:
 
@@ -105,10 +106,59 @@ double lba_cdf(double t, double ter, double A, double v, double sv, double b){
 }
 
 double varwald_pdf(double t, double alpha, double gamma, double theta, double A){
-    return 0.0;
+  /* Python:*/
+
+        t=np.maximum(t-self.theta, 1e-5) # absorbed into pdf
+        sqrt_t=np.sqrt(t)
+
+        # reparametrization
+        a=self.A/2.0
+        k=self.alpha-self.A/2.0
+        l=self.gamma
+
+        if self.A<1e-10: # this is the solution without starting-point variability
+            r=self.alpha/(np.sqrt(2*np.pi*(t**3)))*np.exp(- ((self.alpha-self.gamma*t)**2)/(2*t))
+        elif self.gamma<1e-10:
+            r=np.exp( -.5*( np.log(2)+np.log(np.pi)+np.log(t))
+                      + np.log( np.exp(-( (k-a)**2/(2*t)))-np.exp(-( (k+a)**2/(2*t) )) )
+                      - np.log(2) - np.log(a) )
+        else:
+            r=np.exp( np.log( (np.exp(- (a-k+t*l)**2/(2*t) )-np.exp(- (a+k-t*l)**2/(2*t) ))/np.sqrt(2*np.pi*t)
+                              + np.exp(np.log(.5)+np.log(l))*( 2*pnormP( (-k+a)/sqrt_t + sqrt_t*l)-1
+                                                             + 2*pnormP(  (k+a)/sqrt_t - sqrt_t*l)-1) )
+                      - np.log(2) - np.log(a))
+
+        return np.maximum(0.0, np.where( np.isnan(r), 0, r))
+
+  */
+    double r;
+    if( A<1e-10 ){ /* normal Wald */
+        return wald_pdf(t, alpha, gamma, theta);
+    }
+    double sqrt_t=sqrt(t);
+    double a=A/2.0;
+    double k=alpha-a;
+    double l=gamma;
+    t=MAX(t-theta,1e-5);
+
+    if( gamma<1e-10 ){ /* special solution for v=0 */
+        r=exp( -.5*( log(2.0)+log(M_PI)+log(t))
+                + log( exp( -( SQR(k-a)/(2*t))) - exp(-( SQR(k+a)/(2*t) )) )
+                - log(2.0) - log(a));
+    } else {
+        r=exp( log( ( exp(-SQR(a-k+t*l)/(2*t) ) - exp(-SQR(a+k-t*l)/(2*t) ))/sqrt(2*M_PI*t)
+            + exp( log(.5)+log(l))*( 2*pnormP( (-k+a)/sqrt_t + sqrt_t*l,0,1)-1
+                                   + 2*pnormP(  (k+a)/sqrt_t - sqrt_t*l,0,1)-1))
+            - log(2.0) -log(a));
+    }
+
+    if(!isfinite(r)) r=0.0;
+    return (double)MAX(0, r);
 }
 
 double varwald_cdf(double t, double alpha, double gamma, double theta, double A){
+
+
     return 0.0;
 }
 

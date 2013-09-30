@@ -49,7 +49,9 @@ class testVarWald(PlottingEnabledTestCase):
         self.test_pars=[
             {'A':1.0, 'b':2.0, 'v':.5, 'ter':.1},
             {'A':1.2, 'b':2.0, 'v':.6, 'ter':.5},
-            {'A':1.2, 'b':2.0, 'v':0, 'ter':.5}]
+            {'A':0, 'b':2.0, 'v':1, 'ter':.5},
+            {'A':1.2, 'b':2.0, 'v':0, 'ter':.5},
+            ]
 
     def cmp_pdf_against_R(self, pars):
         """
@@ -131,6 +133,8 @@ class testVarWald(PlottingEnabledTestCase):
             self.cmp_pdf_against_R(pars)
 
     def test_varwald_pdf_against_crace(self):
+        #pars= {'A':0, 'b':2.0, 'v':1, 'ter':.5}
+        #self.cmp_pdf_against_crace(pars)
         for pars in self.test_pars:
             self.cmp_pdf_against_crace(pars)
 
