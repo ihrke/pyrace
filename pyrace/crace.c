@@ -106,7 +106,7 @@ double lba_cdf(double t, double ter, double A, double v, double sv, double b){
 }
 
 double varwald_pdf(double t, double alpha, double gamma, double theta, double A){
-  /* Python:*/
+  /* Python:
 
         t=np.maximum(t-self.theta, 1e-5) # absorbed into pdf
         sqrt_t=np.sqrt(t)
@@ -132,14 +132,15 @@ double varwald_pdf(double t, double alpha, double gamma, double theta, double A)
 
   */
     double r;
-    if( A<1e-10 ){ /* normal Wald */
-        return wald_pdf(t, alpha, gamma, theta);
-    }
+    t=MAX(t-theta,1e-5);
     double sqrt_t=sqrt(t);
     double a=A/2.0;
     double k=alpha-a;
     double l=gamma;
-    t=MAX(t-theta,1e-5);
+
+    if( A<1e-10 ){ /* normal Wald */
+        return (double)MAX(0, (alpha/(sqrt(2*M_PI*(t*t*t))))*exp( -( SQR(alpha-gamma*t))/(2*t)));
+    }
 
     if( gamma<1e-10 ){ /* special solution for v=0 */
         r=exp( -.5*( log(2.0)+log(M_PI)+log(t))

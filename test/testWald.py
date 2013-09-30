@@ -47,7 +47,7 @@ class testVarWald(PlottingEnabledTestCase):
     def setUp(self):
         PlottingEnabledTestCase.setUp(self)
         self.test_pars=[
-            {'A':1.0, 'b':2.0, 'v':.5, 'ter':.1},
+            {'A':1.0, 'b':2.0, 'v':.5, 'ter':.6},
             {'A':1.2, 'b':2.0, 'v':.6, 'ter':.5},
             {'A':0, 'b':2.0, 'v':1, 'ter':.5},
             {'A':1.2, 'b':2.0, 'v':0, 'ter':.5},
