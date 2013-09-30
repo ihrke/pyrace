@@ -594,6 +594,176 @@ void sswald_loglikelihood( int nconditions, int nresponses, int ntrials,        
 }
 
 /*---------------------------------------------------------------------------*/
+/* VarWALD Model (only VarWald accs)
+/*---------------------------------------------------------------------------*/
+
+struct pstop_params_varwald {
+  int nresponses; int stride;
+  double *ggamma; double *gtheta; double *galpha; double *gA;
+  double sgamma; double stheta; double salpha; double sA; double SSD;
+};
+
+double pstop_integrate_varwald( double t, void *params ){
+  void *pptr=params;
+  int nresponses=*((int*)pptr);   pptr+=sizeof(int);
+  int stride=*((int*)pptr);       pptr+=sizeof(int);
+  double *ggamma=*((double**)pptr);   pptr+=sizeof(double*);
+  double *gtheta=*((double**)pptr); pptr+=sizeof(double*);
+  double *galpha=*((double**)pptr);   pptr+=sizeof(double*);
+  double *gA=*((double**)pptr);   pptr+=sizeof(double*);
+  double sgamma=*((double*)pptr);     pptr+=sizeof(double);
+  double stheta=*((double*)pptr);   pptr+=sizeof(double);
+  double salpha=*((double*)pptr);     pptr+=sizeof(double);
+  double sA=*((double*)pptr);     pptr+=sizeof(double);
+  double SSD=*((double*)pptr);
+
+  int i, idx;
+  double r=varwald_pdf(t-SSD, salpha, sgamma, stheta, sA);
+
+  for(i=0; i<nresponses; i++ ){
+	 idx=i*stride;
+	 r*=(1-varwald_cdf(t, galpha[idx], ggamma[idx], gtheta[idx], gA[idx]));
+  }
+  return r;
+}
+
+/** Returns raw likelihoods for each trial in pointer L.
+
+        # pgf  : probability of a go failure
+        # ptf  : probability of a trigger failure
+        # pstop: probability of a sucessful stop given no go or trigger fail
+        # Lg(t): likelihood of response at time t on go trial given no go fail
+        # Ls(t): likelihood of response at time t on stop trial given no go or trigger fail
+        #
+        # GO(NA)  : pgf
+        # STOP(NA): pgf + (1-pgf)*(1-ptf)*pstop
+        # GO(t)   : (1-pgf)*Lg(t)
+        # STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
+ */
+void ssvarwald_loglikelihood( int nconditions, int nresponses, int ntrials,           /* global pars */
+		   				      int *condition, int *response, double *RT, double *SSD, /* data */
+							  double *go_gamma, double *go_theta, double *go_alpha, double *go_A,
+							  double *stop_gamma, double *stop_theta, double *stop_alpha, double *stop_A,
+							  double *pgf, double *ptf, double *L ){
+  /*
+  dprintf("nconditions=%i, nres=%i, ntri=%i\n", nconditions, nresponses, ntrials);
+  for( i=0; i<ntrials; i++ ){
+	 dprintf("condition[%i]=%i, response=%i, RT=%f, SSD=%f\n", i, condition[i], response[i], RT[i], SSD[i]);
+  }
+  dprintf("L=%f\n",*L);
+  */
+
+  int i, j, idx;
+
+  /* setup for numerical integration of pstop */
+  gsl_integration_workspace * work =gsl_integration_workspace_alloc (1000);
+  double result, error;
+  int nerror=0;
+  int errcode;
+  int neval;
+  gsl_function F;
+  F.function = &pstop_integrate_varwald;
+  struct pstop_params_varwald params;
+  F.params=&params;
+  params.nresponses=nresponses;
+  params.stride=nconditions;
+  double pstop;
+  gsl_set_error_handler_off();
+
+  double dens, densgo, densstop, tmp;
+
+  for( i=0; i<ntrials; i++ ){ /* calc L for each datapoint */
+	 /* failed GO */
+	 if( isnan(SSD[i]) && response[i]<0 ){
+		L[i]=pgf[ condition[i] ];
+	 }
+
+	 /* successful stop */
+	 else if( response[i]<0 && isfinite(SSD[i]) ){
+		//dprintf("succstop, trial=%i\n",i);
+		/* set parameters for integration */
+		params.ggamma=&(go_gamma[condition[i]]);
+		params.gtheta=&(go_theta[condition[i]]);
+		params.galpha=&(go_alpha[condition[i]]);
+		params.gA    =&(go_A[condition[i]]);
+
+		params.sgamma=(stop_gamma[condition[i]]);
+		params.stheta=(stop_theta[condition[i]]);
+		params.salpha=(stop_alpha[condition[i]]);
+		params.sA    =(stop_A[condition[i]]);
+		params.SSD = SSD[i];
+
+		/*		errcode=gsl_integration_qagiu (&F, stop_ter[condition[i]]+SSD[i], 1e-5, 1e-5, 1000, work, &result, &error); */
+		errcode=gsl_integration_qagiu (&F, SSD[i], 1e-5, 1e-5, 1000, work, &result, &error);
+		if(errcode){
+		  if(nerror==0){
+			 dprintf("ERROR during integration, errcode=%i, abserr=%f, result=%f\n", errcode, error, result);
+		  }
+		  nerror++;
+		}
+		//dprintf("result=%f, error=%f, neval=%i\n",result, error, (int)(work->size));
+		pstop=result;
+		L[i]=pgf[condition[i]] + (1-pgf[condition[i]])*(1-ptf[condition[i]])*pstop;
+	 }
+
+	 /* go-trials with response */
+	 else if( response[i]>=0 && isnan(SSD[i]) ){
+		dens=1.0;
+
+		for( j=0; j<nresponses; j++ ){
+		  idx=condition[i]+(j*nconditions);
+		  if( j==response[i] ){
+			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=varwald_pdf(RT[i], go_alpha[idx], go_gamma[idx], go_theta[idx], go_A[idx]);
+		  } else {
+			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 dens*=(1-varwald_cdf(RT[i], go_alpha[idx], go_gamma[idx], go_theta[idx], go_A[idx]));
+		  }
+		}
+		if( (dens<0) || !isfinite(dens) )
+		  dens=0.0;
+		L[i]=(1-pgf[condition[i]])*dens;
+	 }
+
+	 /* STOP-trials with response
+		 STOP(t) : (1-pgf)*[ptf*Lg(t) + (1-ptf)*Ls(t)]
+	  */
+	 else if( response[i]>=0 && isfinite(SSD[i]) ){
+		idx=condition[i];
+		densgo=1.0;
+		densstop=(1-varwald_cdf(RT[i]-SSD[i], stop_alpha[idx], stop_gamma[idx], stop_theta[idx], stop_A[idx]));
+
+		for( j=0; j<nresponses; j++ ){
+		  idx=condition[i]+(j*nconditions);
+		  if( j==response[i] ){
+			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 tmp=varwald_pdf(RT[i], go_alpha[idx], go_gamma[idx], go_theta[idx], go_A[idx];
+			 densstop*=tmp;
+			 densgo*=tmp;
+		  } else {
+			 //			 dprintf("Trial %i, condition=%i, CDF non-target-response=%i, idx=%i\n", i, condition[i], j, idx);
+			 tmp=(1-varwald_cdf(RT[i], go_alpha[idx], go_gamma[idx], go_theta[idx], go_A[idx]));
+			 densstop*=tmp;
+			 densgo*=tmp;
+		  }
+		}
+
+		L[i]=(1-pgf[condition[i]])*(ptf[condition[i]]*densgo+(1-ptf[condition[i]])*densstop);
+	 }
+
+	 /* invalid -> error message */
+	 else {
+		dprintf("ERROR: trial %i has not been processed by loglikelihood!\n",i);
+	 }
+  }
+
+  /* clean up */
+  gsl_integration_workspace_free(work);
+}
+
+
+
+/*---------------------------------------------------------------------------*/
 /* LOGNORMAL Model (only LN accs)
 /*---------------------------------------------------------------------------*/
 
