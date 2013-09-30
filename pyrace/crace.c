@@ -158,9 +158,65 @@ double varwald_pdf(double t, double alpha, double gamma, double theta, double A)
 }
 
 double varwald_cdf(double t, double alpha, double gamma, double theta, double A){
+  /* Python:
 
+        t=np.maximum(t-self.theta, 1e-5) # absorbed into cdf
 
-    return 0.0;
+        sqrt_t=np.sqrt(t)
+
+        # reparametrization
+        a=self.A/2.0
+        k=self.alpha-self.A/2.0
+        l=self.gamma
+
+        if self.A<1e-10: # this is the solution without starting-point variability
+            r=pnormP( (self.gamma*t-self.alpha)/sqrt_t)+np.exp(2*self.alpha*self.gamma)*pnormP(-(self.gamma*t+self.alpha)/(sqrt_t))
+        elif self.gamma<1e-10:
+            r=(( -(k+a)*(2*pnormP( (k+a)/sqrt_t)-1)
+                 -(k-a)*(2*pnormP(-(k-a)/sqrt_t)-1))/(2*a)) \
+              + (1 + np.exp(-.5*(k-a)**2/t - .5*np.log(2) - .5*np.log(np.pi) + .5*np.log(t) - np.log(a))
+                 -   np.exp(-.5*(k+a)**2/t - .5*np.log(2) - .5*np.log(np.pi) + .5*np.log(t) - np.log(a)))
+        else:
+            t1=np.exp( .5*np.log(t)-.5*np.log(2*np.pi) ) * (  np.exp( -((k-a-t*l)**2/t)/2.)
+                                                            - np.exp( -((k+a-t*l)**2/t)/2.) ) # ok
+            t2=a+(   np.exp(2*l*(k+a)+np.log(pnormP(-(k+a+t*l)/sqrt_t)))
+                   - np.exp(2*l*(k-a)+np.log(pnormP(-(k-a+t*l)/sqrt_t))) )/(2*l) # ok
+            t4= (.5*(t*l-a-k+.5/l)) * ( 2*pnormP((k+a)/sqrt_t-sqrt_t*l)-1) \
+               +(.5*(k-a-t*l-.5/l)) * ( 2*pnormP((k-a)/sqrt_t-sqrt_t*l)-1)
+            r=(t4+t2+t1)/(2*a)
+
+        return np.minimum( np.maximum( 0., np.where( np.isnan(r), 0, r) ), 1.)
+    */
+
+    double r;
+    t=MAX(t-theta,1e-5);
+    double sqrt_t=sqrt(t);
+    double a=A/2.0;
+    double k=alpha-a;
+    double l=gamma;
+
+    if( A<1e-10 ){ /* normal Wald */
+        return (double)MIN(1, MAX( 0, pnormP( (gamma*t-alpha)/sqrt(t), 0,1)+exp(2*alpha*gamma)*pnormP( -(gamma*t+alpha)/sqrt(t), 0,1) ));
+    }
+
+    if( gamma<1e-10){
+        r=(( -(k+a)*(2*pnormP( (k+a)/sqrt_t,0,1)-1)
+             -(k-a)*(2*pnormP(-(k-a)/sqrt_t,0,1)-1))/(2*a))
+           + ( 1+ exp(-.5*SQR(k-a)/t - .5*log(2.0) - .5*log(M_PI) + .5*log(t) - log(a))
+                - exp(-.5*SQR(k+a)/t - .5*log(2.0) - .5*log(M_PI) + .5*log(t) - log(a)));
+    } else {
+        double t1, t2, t4;
+        t1=exp( .5*log(t) - .5*log(2*M_PI) ) * ( exp( -(SQR(k-a-t*l)/t)/2.)
+                                                -exp( -(SQR(k+a-t*l)/t)/2.) );
+        t2=a+( exp(2*l*(k+a)+log(pnormP(-(k+a+t*l)/sqrt_t,0,1)))
+              -exp(2*l*(k-a)+log(pnormP(-(k-a+t*l)/sqrt_t,0,1))) )/(2*l);
+        t4= (.5*(t*l-a-k+.5/l)) * (2*pnormP((k+a)/sqrt_t-sqrt_t*l,0,1)-1)
+           +(.5*(k-a-t*l-.5/l)) * (2*pnormP((k-a)/sqrt_t-sqrt_t*l,0,1)-1);
+        r=(t4+t2+t1)/(2*a);
+    }
+    if(!isfinite(r)) r=0.0;
+
+    return (double)MIN( MAX( 0, r ), 1);
 }
 
 double wald_pdf(double t, double alpha, double gamma, double theta){
