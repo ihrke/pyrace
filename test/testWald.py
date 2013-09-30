@@ -21,7 +21,7 @@ class testWald(PlottingEnabledTestCase):
         #pl.hist(acc.sample(nsamples),200, normed=True)
         h,hx=np.histogram(samp, density=True, bins=1000)
         hx=hx[:-1]+(hx[1]-hx[0])/2.
-        assert np.any(np.abs(h-acc.pdf(hx))<0.5)
+        assert np.all(np.abs(h-acc.pdf(hx))<0.5)
         
         if True:
             #pl.subplot(2,1,1)
@@ -145,11 +145,12 @@ class testVarWald(PlottingEnabledTestCase):
         h,hx=np.histogram(samp, density=True, bins=1000)
 
         hx=hx[:-1]+(hx[1]-hx[0])/2.
-        assert np.any(np.abs(h-acc.pdf(hx))<0.5)
+        assert np.all(np.abs(h-acc.pdf(hx))<0.5)
 
         if True:
             #pl.subplot(2,1,1)
-            pl.hist(samp[samp<10],300, normed=True, alpha=.3)
+            #pl.hist(samp[samp<10],300, normed=True, alpha=.3)
+            pl.bar(hx,h, width=hx[1]-hx[0], alpha=.3)
             pl.title(str(pars))
             #pl.xlim(0,3)
 

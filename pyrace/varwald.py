@@ -114,7 +114,10 @@ class VarWaldAccumulator(Accumulator):
         nnot=n
         rts=[]
         while nnot>0:
-            crts=self.theta+np.random.wald(self.mu, self.lambd, size=nnot)-np.random.uniform(0,self.A,size=nnot)
+            bounds=self.alpha-np.random.uniform(0,self.A,size=nnot)
+            mus=bounds/self.gamma
+            lambds=bounds**2
+            crts=np.array([self.theta+np.random.wald(mu, lambd) for mu,lambd in zip(mus,lambds)])
             nnot=np.sum(crts>=upper_limit)
             rts+=list(crts[crts<upper_limit])
         return np.array(rts, dtype=np.double)
