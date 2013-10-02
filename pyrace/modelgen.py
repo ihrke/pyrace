@@ -32,6 +32,12 @@ class {modelname}({parentclass}):
 {stop_accumulator_definition}
 
         self.set_accumulators(go_acc, stop_acc)
+
+{prob_go_fail_definition}
+
+{prob_trigger_fail_definition}
+
+        #self.set_mixing_probabilities(pgf, ptf)
     """
 
 
@@ -42,7 +48,17 @@ class ParMap(object):
 
 
 class ModelTable():
-    """Tabular representation of a race-model"""
+    """Tabular representation of a race-model.
+
+    This should become the way to create a model. Currently not all possible cases are implemented.
+
+    Stuff that is missing:
+
+    TODO: arbitrary parameter-mapping (e.g., map b to A+B)
+    TODO: indexing better (currently only indexing of the sort dataframe[column==value] allowed in
+          ParMap. Should allow, e.g., dataframe[column %in% list] etc
+
+    """
 
     def __init__(self, modelname, design, parentcl, **modelspec):
         """
@@ -103,6 +119,7 @@ class ModelTable():
                 print "WARNING: overwriting previous specifications; Model may be misspecified."
                 print "   Check resulting table wether the model does what you want!"
             self.table[spec.accpar][ind]=parname
+        self.check_table()
 
     def check_table(self):
         accpars=self.parentcl.accumulator_type.parnames
@@ -112,6 +129,8 @@ class ModelTable():
             levels=self.table[fac].unique()
             if set(levels)!=set(self.design.factor_dict[fac]):
                 raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(self.design.factor_dict[fac]),str(levels)))
+        for par in accpars:
+            assert np.any(self.table[par]!="*"), "some parameters are not set!"
 
 
     def __repr__(self):
@@ -153,14 +172,18 @@ class ModelTable():
             upper=",".join(["1" for i in range(len(modpars))]),
             design="pr."+repr(self.design),
             go_accumulator_definition=go_acc_def,
-            stop_accumulator_definition=stop_acc_def
+            stop_accumulator_definition=stop_acc_def,
+            prob_go_fail_definition="",
+            prob_trigger_fail_definition=""
         )
-        #loc_dict={}
-        #print modelstr
-        #exec(modelstr, globals(), loc_dict)
-        #return loc_dict[modname]
 
         return modelstr
+
+    def generate_model_class(self):
+        modelstr=self.generate_model_str()
+        loc_dict={}
+        exec(modelstr, globals(), loc_dict)
+        return loc_dict[self.name]
 
 
 
@@ -179,10 +202,14 @@ if __name__=="__main__":
                   Vs =ParMap('gamma', gostop='stop'))
 
     print mt
-    modstr=mt.generate_model_str()
-    print modstr
-    exec(modstr)
-    print testModel()
+    modcl=mt.generate_model_class()
+    #print modstr
+    #exec(modstr)
+    mod=modcl()#testModel()
+
+    import pylab as pl
+    mod.plot_model(lims=(.1,3))
+    pl.show()
 
 #    modcl=generate_model( "TestModel", design, pr.SSWald, df)
 #    mod=modcl(design)
