@@ -26,6 +26,10 @@ class {modelname}({parentclass}):
             self.set_params(self.__class__.paramspec().random())
         self.set_mixing_probabilities(0,0)
 
+    def copy(self):
+        m=self.__class__(self.params)
+        return m
+
     def set_params(self, pars):
         self.params=pars
         go_acc=[ [None for resp in range(self.design.nresponses())] for cond in range(self.design.nconditions())]
