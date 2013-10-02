@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import pyrace as pr
-import itertools
 from .tools import flatten
 
 model_template="""
@@ -132,12 +130,18 @@ class ModelTable():
         go_acc_def=""
         for cond in range(self.design.nconditions()):
             for iresp, resp in enumerate(self.design.get_responses()):
-                print cond, resp
                 pard={k:self.table[k][(self.table.condition==cond) & (self.table.response==resp)
                                       & (self.table.gostop=='go')].iloc[0] for k in accpars}
-                print pard
                 parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
                 go_acc_def+=tpl.format(cond=cond,resp=resp,iresp=iresp, parlist=parlist)
+
+        tpl="""        stop_acc[{cond}]=self.accumulator_type({parlist}, name='stop-'+':'.join(self.design.condidx({cond})))\n"""
+        stop_acc_def=""
+        for cond in range(self.design.nconditions()):
+            pard={k:self.table[k][(self.table.condition==cond)
+                                  & (self.table.gostop=='stop')].iloc[0] for k in accpars}
+            parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
+            stop_acc_def+=tpl.format(cond=cond, parlist=parlist)
 
 
         modelstr=model_template.format(
@@ -149,7 +153,7 @@ class ModelTable():
             upper=",".join(["1" for i in range(len(modpars))]),
             design="pr."+repr(self.design),
             go_accumulator_definition=go_acc_def,
-            stop_accumulator_definition=""
+            stop_accumulator_definition=stop_acc_def
         )
         #loc_dict={}
         #print modelstr
@@ -161,6 +165,8 @@ class ModelTable():
 
 
 if __name__=="__main__":
+    import pyrace as pr
+
     factors=[{'deprivation':['normal', 'sleep']},
              {'stimulus':['left', 'right']}]
     responses=['left', 'right']
