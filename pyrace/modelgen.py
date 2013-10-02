@@ -5,6 +5,7 @@ import itertools
 from .tools import flatten
 
 model_template="""
+import pyrace as pr
 class {modelname}({parentclass}):
     class {modelname}_paramspec(pr.Parameters):
         parnames=[{parnames}]
@@ -13,8 +14,8 @@ class {modelname}({parentclass}):
 
     paramspec={modelname}_paramspec
 
-    def __init__(self, design, pars=None):
-        self.design=design
+    def __init__(self, pars=None):
+        self.design={design}
         if pars!=None:
             self.set_params(pars)
         else:
@@ -25,6 +26,8 @@ class {modelname}({parentclass}):
         self.params=pars
         go_acc=[ [None for resp in range(self.design.nresponses())] for cond in range(self.design.nconditions())]
         stop_acc=[ None for cond in range(self.design.nconditions())]
+
+{pardef}
 
 {go_accumulator_definition}
 
@@ -116,7 +119,7 @@ class ModelTable():
     def __repr__(self):
         return repr(self.table)
 
-    def generate_model(self, as_string=False):
+    def generate_model_str(self):
         self.check_table()
 
         accpars=self.parentcl.accumulator_type.parnames
@@ -125,30 +128,35 @@ class ModelTable():
             modpars += list(self.table[accpar].unique())
         modpars=np.unique(modpars)
 
-        tpl="""        go_acc[{cond}][{resp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
+        tpl="""        go_acc[{cond}][{iresp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
         go_acc_def=""
-        for cond,resp in itertools.product( range(self.design.nconditions()), self.design.get_responses()):
-            print cond, resp
-            pard={k:self.table[(self.table.condition==cond) & (self.table.response==resp)][k][0] for k in accpars}
-            print pard
-            parlist=",".join(["%s=pars.%s"%(k,v[0]) for k,v in pard.items()])
-            go_acc_def+=tpl.format(cond=cond,resp=resp, parlist=parlist)
+        for cond in range(self.design.nconditions()):
+            for iresp, resp in enumerate(self.design.get_responses()):
+                print cond, resp
+                pard={k:self.table[k][(self.table.condition==cond) & (self.table.response==resp)
+                                      & (self.table.gostop=='go')].iloc[0] for k in accpars}
+                print pard
+                parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
+                go_acc_def+=tpl.format(cond=cond,resp=resp,iresp=iresp, parlist=parlist)
 
 
         modelstr=model_template.format(
-            modelname=self.modelname,
+            modelname=self.name,
+            pardef="\n".join(["        %s=pars.%s"%(par,par) for par in modpars]),
             parnames=",".join(['"%s"'%modpar for modpar in modpars]),
             parentclass="pr."+(self.parentcl.__name__.split(".")[-1]),
             lower=",".join(["0" for i in range(len(modpars))]),
             upper=",".join(["1" for i in range(len(modpars))]),
+            design="pr."+repr(self.design),
             go_accumulator_definition=go_acc_def,
             stop_accumulator_definition=""
         )
-        loc_dict={}
-        print modelstr
+        #loc_dict={}
+        #print modelstr
         #exec(modelstr, globals(), loc_dict)
+        #return loc_dict[modname]
 
-        return loc_dict[modname]
+        return modelstr
 
 
 
@@ -160,12 +168,16 @@ if __name__=="__main__":
 
     mt=ModelTable('testModel', design, pr.SSWald,
                   ter=ParMap('theta'), b=ParMap('alpha'),
-                  V=ParMap('gamma', correct=True, gostop='go'),
-                  v=ParMap('gamma', correct=False, gostop='go'),
-                  Vs=ParMap('gamma', gostop='stop'))
+                  V  =ParMap('gamma', correct=True, gostop='go'),
+                  v  =ParMap('gamma', correct=False, gostop='go'),
+                  Vs =ParMap('gamma', gostop='stop'))
 
     print mt
-    mt.generate_model()
+    modstr=mt.generate_model_str()
+    print modstr
+    exec(modstr)
+    print testModel()
+
 #    modcl=generate_model( "TestModel", design, pr.SSWald, df)
 #    mod=modcl(design)
 #    print mod
