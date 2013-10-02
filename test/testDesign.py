@@ -19,6 +19,14 @@ class testDesign(unittest.TestCase):
         k=['deprived','left']
         assert design.condidx(  k )==2
 
+    def test_repr(self):
+        factors=[{'sleepdep':['normal','deprived']},
+                 {'stimulus':['left', 'right']}]
+        responses=['left','right']
+        design=Design(factors,responses, 'stimulus', name="blubber")
+        design2=eval(repr(design))
+        assert design.__dict__==design2.__dict__, "%s vs %s"%(repr(design), repr(design2))
+
 
 class testDataSet(unittest.TestCase):
     def setUp(self):

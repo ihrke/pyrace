@@ -34,9 +34,6 @@ class {modelname}({parentclass}):
     """
 
 
-
-
-
 class ParMap(object):
     def __init__(self, accpar, **kwargs):
         self.accpar=accpar

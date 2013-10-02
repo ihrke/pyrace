@@ -30,6 +30,7 @@ class Design:
         return self.responses
     
     def set_factors(self, factors):
+        self.org_factors=factors
         its=[]
         for fac in factors:
             its+=fac.items()
@@ -56,8 +57,14 @@ class Design:
             return self.responses.index(self.factors_from_int[conditionidx][self.response_to_factor_idx])
         else:
             return self.factors_from_int[conditionidx][self.response_to_factor_idx]
-    
+
     def __repr__(self):
+        return "Design(%s, %s, %s, name=%s)"%(repr(self.org_factors),
+                                              repr(self.responses),
+                                              repr(self.response_to_factor),
+                                              repr(self.name))
+
+    def __str__(self):
         r="<Design '%s'>\n"%self.name
         for k,v in self.factor_dict.items():
             r+=" %s: %s\n"%(str(k),str(v))
