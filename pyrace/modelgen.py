@@ -33,16 +33,23 @@ class {modelname}({parentclass}):
 
         self.set_accumulators(go_acc, stop_acc)
 
+        ## mixing probabilities
+        pgf=[0 for cond in range(self.design.nconditions())]
+        ptf=[0 for cond in range(self.design.nconditions())]
+
 {prob_go_fail_definition}
 
 {prob_trigger_fail_definition}
 
-        #self.set_mixing_probabilities(pgf, ptf)
+        self.set_mixing_probabilities(pgf, ptf)
     """
 
 
 class ParMap(object):
     def __init__(self, accpar, **kwargs):
+        """
+        if constant!=None, the corresponding variable is set to constant for all entries in the table
+        """
         self.accpar=accpar
         self.table_index=kwargs
 
@@ -54,13 +61,17 @@ class ModelTable():
 
     Stuff that is missing:
 
+    TODO: specify constant parameters
+    TODO: boundary specification
+            * accumulators should propose maximal boundaries
+            * ParMap should implement a tighter setting of those boundaries
     TODO: arbitrary parameter-mapping (e.g., map b to A+B)
     TODO: indexing better (currently only indexing of the sort dataframe[column==value] allowed in
           ParMap. Should allow, e.g., dataframe[column %in% list] etc
 
     """
 
-    def __init__(self, modelname, design, parentcl, **modelspec):
+    def __init__(self, modelname, design, parentcl, fixed={}, **modelspec):
         """
         modelname : str
             just a name for the model
@@ -78,6 +89,7 @@ class ModelTable():
         self.design=design
         self.parentcl=parentcl
         self.modelspec=modelspec
+        self.fixed=fixed
         self.init_modelspec()
 
     def init_empty_table(self):
@@ -104,6 +116,8 @@ class ModelTable():
     def init_modelspec(self):
         self.init_empty_table()
 
+        for k,v in self.fixed.items():
+            self.table[k]=v
         for parname, spec in self.modelspec.items():
             if spec.accpar not in self.table.columns:
                 raise Exception("Accumulator parameter '%s' for Accumulator '%s' unknown"%(str(spec.accpar),
@@ -130,7 +144,7 @@ class ModelTable():
             if set(levels)!=set(self.design.factor_dict[fac]):
                 raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(self.design.factor_dict[fac]),str(levels)))
         for par in accpars:
-            assert np.any(self.table[par]!="*"), "some parameters are not set!"
+            assert np.any(np.array(self.table[par])!="*"), "some parameters are not set!"
 
 
     def __repr__(self):
@@ -142,6 +156,8 @@ class ModelTable():
         accpars=self.parentcl.accumulator_type.parnames
         modpars=[]
         for accpar in accpars:
+            if accpar in self.fixed.keys():
+                continue
             modpars += list(self.table[accpar].unique())
         modpars=np.unique(modpars)
 
@@ -161,6 +177,8 @@ class ModelTable():
                                   & (self.table.gostop=='stop')].iloc[0] for k in accpars}
             parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
             stop_acc_def+=tpl.format(cond=cond, parlist=parlist)
+
+        tpl="""        pgf[{cond}]={pgf}\n"""
 
 
         modelstr=model_template.format(
@@ -195,16 +213,22 @@ if __name__=="__main__":
     responses=['left', 'right']
     design=pr.Design(factors, responses, 'stimulus', name='singlego')
 
-    mt=ModelTable('testModel', design, pr.SSWald,
-                  ter=ParMap('theta'), b=ParMap('alpha'),
-                  V  =ParMap('gamma', correct=True, gostop='go'),
-                  v  =ParMap('gamma', correct=False, gostop='go'),
-                  Vs =ParMap('gamma', gostop='stop'))
+    mt=ModelTable('testModelLBA', design, pr.pSSLBA,
+                  fixed={'sv':1.0},
+                  ter=ParMap('ter'),
+                  b  =ParMap('b'),
+                  A  =ParMap('A'),
+                  V  =ParMap('v', correct=True, gostop='go'),
+                  v  =ParMap('v', correct=False, gostop='go'),
+                  Vs =ParMap('v', gostop='stop'))
 
     print mt
-    modcl=mt.generate_model_class()
-    #print modstr
-    #exec(modstr)
+    modstr=mt.generate_model_str()
+    print modstr
+
+    loc={}
+    exec(modstr,loc)
+    modcl=loc['testModelLBA']
     mod=modcl()#testModel()
 
     import pylab as pl

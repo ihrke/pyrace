@@ -13,3 +13,4 @@ from .racemodel import *
 from .optimize import *
 from .param import *
 from .plotting import *
+from .modelgen import *
