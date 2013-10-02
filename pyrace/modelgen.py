@@ -124,8 +124,13 @@ class ModelTable():
         # accumulator columns in good order
         accpars=[(k,'*') for k in self.parentcl.accumulator_type.parnames]
 
+        # go/trigger failures
+        pgf=["*" for i in conditions]
+        ptf=["*" for i in conditions]
+
         df=pd.DataFrame.from_items([('condition', conditions),
-            ('response', responses), ('gostop',gostop), ('correct', correct)]+factors+accpars)
+            ('response', responses), ('gostop',gostop), ('correct', correct)]+factors+accpars+
+                                   [('pgf',pgf), ('ptf',ptf)])
         self.table=df
         self.nrows=df.shape[0]
 
@@ -159,7 +164,7 @@ class ModelTable():
             levels=self.table[fac].unique()
             if set(levels)!=set(self.design.factor_dict[fac]):
                 raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(self.design.factor_dict[fac]),str(levels)))
-        for par in accpars:
+        for par in accpars+['pgf','ptf']:
             assert np.all(np.array(self.table[par])!="*"), "some parameters are not set!\nHere is the model:\n"+str(self)
 
 
@@ -170,8 +175,9 @@ class ModelTable():
         self.check_table()
 
         accpars=self.parentcl.accumulator_type.parnames
+        mod_accpars=accpars+["pgf","ptf"]
         modpars=[]
-        for accpar in accpars:
+        for accpar in mod_accpars:
             if accpar in self.fixed.keys():
                 continue
             modpars += list(self.table[accpar].unique())
@@ -204,6 +210,14 @@ class ModelTable():
             stop_acc_def+=tpl.format(cond=cond, parlist=parlist)
 
         tpl="""        pgf[{cond}]={pgf}\n"""
+        pgf_def=""
+        for cond in range(self.design.nconditions()):
+            pgf_def+=tpl.format(cond=cond, pgf=self.table['pgf'][self.table.condition==cond].iloc[0])
+
+        tpl="""        ptf[{cond}]={ptf}\n"""
+        ptf_def=""
+        for cond in range(self.design.nconditions()):
+            ptf_def+=tpl.format(cond=cond, ptf=self.table['ptf'][self.table.condition==cond].iloc[0])
 
 
         modelstr=model_template.format(
@@ -216,8 +230,8 @@ class ModelTable():
             design="pr."+repr(self.design),
             go_accumulator_definition=go_acc_def,
             stop_accumulator_definition=stop_acc_def,
-            prob_go_fail_definition="",
-            prob_trigger_fail_definition=""
+            prob_go_fail_definition=pgf_def,
+            prob_trigger_fail_definition=ptf_def
         )
 
         return modelstr
@@ -238,9 +252,11 @@ if __name__=="__main__":
     responses=['left', 'right']
     design=pr.Design(factors, responses, 'stimulus', name='singlego')
 
-    mt=ModelTable('testModelLBAmapping', design, pr.pSSLBA,
-                  fixed={'sv':1.0},
+    mt=ModelTable('testModelLBA_gf', design, pr.pSSLBA,
+                  fixed={'sv':1.0, 'ptf':0},
                   ter=ParMap('ter'),
+                  gf =ParMap('pgf', deprivation='control'),
+                  gfs=ParMap('pgf', deprivation='sleep'),
                   Bc =ParMap('b', mapping="Bc +A", deprivation='control', gostop='go'  ),
                   Bcs=ParMap('b', mapping="Bcs+As", deprivation='control', gostop='stop'),
                   Bd =ParMap('b', mapping="Bd +A", deprivation='sleep', gostop='go'  ),
@@ -257,7 +273,7 @@ if __name__=="__main__":
 
     loc={}
     exec(modstr,loc)
-    modcl=loc['testModelLBA']
+    modcl=loc['testModelLBA_gf']
     mod=modcl()#testModel()
 
     import pylab as pl

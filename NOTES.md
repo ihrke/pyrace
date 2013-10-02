@@ -11,3 +11,12 @@ Solution: always run
 	python setup.py install
 
 instead of `python setup.py install` alone.
+
+
+General Notes:
+--------------
+
+* It's awkward to have the ptf/pgf parameters as Model parameters rather than accumulator parameters
+  - it would be much more elegant to assign the ptf/pgf to each accumulator (a probability of it starting)
+    and let the model-definition layer deal with the mapping from pgf/ptf to those.
+  - would resolve a lot of inconsistencies in the code
