@@ -1,4 +1,5 @@
 from common import *
+import scipy
 from pyrace import ShiftedWaldAccumulator, VarWaldAccumulator
 
 class testWald(PlottingEnabledTestCase):
@@ -18,19 +19,27 @@ class testWald(PlottingEnabledTestCase):
         import pylab as pl
         samp=acc.sample(nsamples)
         #dens=scipy.stats.gaussian_kde(samp[samp<10])
-        #pl.hist(acc.sample(nsamples),200, normed=True)
+
+        pl.hist(acc.sample(nsamples),200, normed=True)
         h,hx=np.histogram(samp, density=True, bins=1000)
         hx=hx[:-1]+(hx[1]-hx[0])/2.
-        assert np.all(np.abs(h-acc.pdf(hx))<0.5)
-        
-        if True:
-            #pl.subplot(2,1,1)
-            pl.hist(samp[samp<10],300, normed=True, alpha=.3)
-            pl.xlim(0,3)
+        #assert np.all(np.abs(h-acc.pdf(hx))<1.5)
 
-            #pl.subplot(2,1,2)                
+        # kolmogoroff smirnov tests whether samples come from CDF
+        D,pv=scipy.stats.kstest(samp, acc.cdf)
+        print D,pv
+        assert pv>.05, "D=%f,p=%f"%(D,pv)
+        if True:
+            pl.clf()
+            #pl.subplot(2,1,1)
+            #pl.hist(samp[samp<10],300, normed=True, alpha=.3)
+
+
+            #pl.subplot(2,1,2)
+            pl.bar(hx, h, alpha=.3, width=hx[1]-hx[0])
             pl.plot(x,acc.pdf(x), color='red', label='analytical')
             #pl.plot(x,dens(x),    color='green', label='kde')
+            pl.xlim(0,3)
             pl.legend()
             self.savefig()
 

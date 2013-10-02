@@ -9,6 +9,40 @@ from pyrace.models.psslba import pSSLBA_modelA
 import pyrace.crace
 import pyrace as pr
 
+class ToyVarWald_paramspec(pr.Parameters):
+    parnames=['ter',  'b',  'V', 'v', 'Vs', 'A']
+    lower   =[ 1e-5, 1e-5,  -5,   -5,   -5,   0]
+    upper   =[    1,    5,   5,    5,    5,   5]
+
+
+class ModToyVarWald(pr.SSVarWald):
+    paramspec=ToyVarWald_paramspec;
+
+    def __init__(self, design, pars=None):
+        self.design=design
+        self.sv=1.0
+        if pars!=None:
+            self.set_params(pars)
+        else:
+            self.set_params(self.__class__.paramspec().random())
+        self.set_mixing_probabilities(0,0)
+
+    def set_params(self, pars):
+        self.params=pars
+        go_acc=[]
+        for cond in range(self.design.nconditions()):
+            correct=self.design.correct_response(cond)
+            go_acc.append([ pr.VarWaldAccumulator( pars.b, self.params.V if resp==correct else self.params.v,
+                                                   pars.ter, pars.A,
+                                                   name='go-'+":".join(self.design.condidx(cond)) )
+            for resp in self.design.get_responses()])
+
+        stop_acc=[]
+        for cond in range(self.design.nconditions()):
+            stop_acc.append( pr.VarWaldAccumulator( pars.b, pars.Vs, pars.ter, pars.A,
+                                                       name='stop-'+":".join(self.design.condidx(cond)) ) )
+
+        self.set_accumulators(go_acc, stop_acc)
 
 class ToyWald_paramspec(pr.Parameters):
     parnames=['ter',  'b',  'V', 'Vs']
@@ -174,6 +208,25 @@ class testCRace(unittest.TestCase):
 
         pars=ModToyWald.paramspec(ter=.3, b=1.0, V=1.0, Vs=2.0);
         mod=ModToyWald(design, pars)
+        ds=mod.simulate(300)
+
+        print mod
+
+        Ls=StopTaskRaceModel.likelihood_trials(mod, ds)
+        L2=mod.likelihood_trials(ds)
+
+        goodix=(np.abs(Ls-L2)<1e-5)
+        badix=np.logical_not(goodix)
+        assert np.sum(badix)==0, "num bad idx=%i"%np.sum(badix)
+
+    def test_ssvarwald_likelihood_trials(self):
+        factors=[{'deprivation':['normal', 'sleep']},
+                 {'stimulus':['left', 'right']}]
+        responses=['left', 'right']
+        design=pr.Design(factors, responses, 'stimulus', name='singlego_varwald')
+
+        pars=ModToyVarWald.paramspec(ter=.3, b=1.0, V=1.0, v=.5, Vs=2.0, A=.5);
+        mod=ModToyVarWald(design, pars)
         ds=mod.simulate(300)
 
         print mod

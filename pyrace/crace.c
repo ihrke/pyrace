@@ -737,7 +737,7 @@ void ssvarwald_loglikelihood( int nconditions, int nresponses, int ntrials,     
 		  idx=condition[i]+(j*nconditions);
 		  if( j==response[i] ){
 			 //			 dprintf("Trial %i, condition=%i, PDF target-response=%i, idx=%i\n", i, condition[i], j, idx);
-			 tmp=varwald_pdf(RT[i], go_alpha[idx], go_gamma[idx], go_theta[idx], go_A[idx];
+			 tmp=varwald_pdf(RT[i], go_alpha[idx], go_gamma[idx], go_theta[idx], go_A[idx]);
 			 densstop*=tmp;
 			 densgo*=tmp;
 		  } else {
