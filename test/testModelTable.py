@@ -19,9 +19,8 @@ class testModelTable(PlottingEnabledTestCase):
         print mt
         modstr=mt.generate_model_str()
         print modstr
-        loc={}
-        exec( modstr, globals(), loc)
-        modcl=loc['testModel']
+
+        modcl=mt.generate_model_class()
         mod=modcl()
 
         pl.clf()
@@ -46,9 +45,8 @@ class testModelTable(PlottingEnabledTestCase):
         print mt
         modstr=mt.generate_model_str()
         print modstr
-        loc={}
-        exec( modstr, globals(), loc)
-        modcl=loc['testModelLBA']
+
+        modcl=mt.generate_model_class()
         mod=modcl()
 
         pl.clf()
@@ -77,9 +75,7 @@ class testModelTable(PlottingEnabledTestCase):
         print mt
         modstr=mt.generate_model_str()
         print modstr
-        loc={}
-        exec( modstr, globals(), loc)
-        modcl=loc['testModelLBAmapping']
+        modcl=mt.generate_model_class()
         mod=modcl()
 
         pl.clf()
@@ -110,14 +106,46 @@ class testModelTable(PlottingEnabledTestCase):
         print mt
         modstr=mt.generate_model_str()
         print modstr
-        loc={}
-        exec( modstr, globals(), loc)
-        modcl=loc['testModelLBA_gf']
+
+        modcl=mt.generate_model_class()
         mod=modcl()
 
         pl.clf()
         mod.plot_model(lims=(.1,3))
         self.savefig()
+
+    def test_model5(self):
+        factors=[{'deprivation':['control', 'sleep']},
+                 {'stimulus':['left', 'right']}]
+        responses=['left', 'right']
+        design=pr.Design(factors, responses, 'stimulus', name='singlego')
+
+        mt=pr.ModelTable('testModelLBA_gf_bounds', design, pr.pSSLBA,
+                      fixed={'sv':1.0, 'ptf':0},
+                      ter=ParMap('ter', bounds=(0,3)),
+                      gf =ParMap('pgf', deprivation='control'),
+                      gfs=ParMap('pgf', deprivation='sleep'),
+                      Bc =ParMap('b', mapping="Bc +A", deprivation='control', gostop='go', bounds=(0,5) ),
+                      Bcs=ParMap('b', mapping="Bcs+As", deprivation='control', gostop='stop', bounds=(0,5) ),
+                      Bd =ParMap('b', mapping="Bd +A", deprivation='sleep', gostop='go', bounds=(0,5) ),
+                      Bds=ParMap('b', mapping="Bds+As", deprivation='sleep', gostop='stop', bounds=(0,5)),
+                      A  =ParMap('A', gostop='go', bounds=(0,5)),
+                      As =ParMap('A', gostop='stop', bounds=(0,5)),
+                      V  =ParMap('v', correct=True, gostop='go', bounds=(-5,5)),
+                      v  =ParMap('v', correct=False, gostop='go', bounds=(-5,5)),
+                      Vs =ParMap('v', gostop='stop', bounds=(-5,5)))
+
+        print mt
+        modstr=mt.generate_model_str()
+        print modstr
+
+        modcl=mt.generate_model_class()
+        mod=modcl()
+
+        pl.clf()
+        mod.plot_model(lims=(.1,3))
+        self.savefig()
+
 
 if __name__ == '__main__':
     unittest.main()

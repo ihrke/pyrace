@@ -1,6 +1,8 @@
 import numpy as np
+from numpy import inf
 import pandas as pd
-from .tools import flatten
+import tempfile
+from .tools import *
 
 model_template="""
 import pyrace as pr
@@ -268,11 +270,18 @@ class ModelTable():
         return modelstr
 
     def generate_model_class(self):
-        modelstr=self.generate_model_str()
-        loc_dict={}
-        exec(modelstr, globals(), loc_dict)
-        return loc_dict[self.name]
+        """
+        Return a class-object that can be used to instantiate model objects.
 
+        Note: this implementation uses dynamic importing rather than exec()
+              (which, believe me, can make a lot of trouble...)
+        """
+        modelstr=self.generate_model_str()
+        fname=tempfile.mktemp(suffix='.py')
+        with open(fname,'w') as f:
+            f.write(modelstr)
+        classobj=load_class_from_file(fname, self.name)
+        return classobj
 
 
 if __name__=="__main__":
@@ -283,28 +292,26 @@ if __name__=="__main__":
     responses=['left', 'right']
     design=pr.Design(factors, responses, 'stimulus', name='singlego')
 
-    mt=ModelTable('testModelLBA_gf', design, pr.pSSLBA,
+    mt=ModelTable('testModelLBA_gf_bounds', design, pr.pSSLBA,
                   fixed={'sv':1.0, 'ptf':0},
-                  ter=ParMap('ter'),
+                  ter=ParMap('ter', bounds=(0,3)),
                   gf =ParMap('pgf', deprivation='control'),
                   gfs=ParMap('pgf', deprivation='sleep'),
-                  Bc =ParMap('b', mapping="Bc +A", deprivation='control', gostop='go'  ),
-                  Bcs=ParMap('b', mapping="Bcs+As", deprivation='control', gostop='stop'),
-                  Bd =ParMap('b', mapping="Bd +A", deprivation='sleep', gostop='go'  ),
-                  Bds=ParMap('b', mapping="Bds+As", deprivation='sleep', gostop='stop'),
-                  A  =ParMap('A', gostop='go'),
-                  As =ParMap('A', gostop='stop'),
-                  V  =ParMap('v', correct=True, gostop='go'),
-                  v  =ParMap('v', correct=False, gostop='go'),
-                  Vs =ParMap('v', gostop='stop'))
+                  Bc =ParMap('b', mapping="Bc +A", deprivation='control', gostop='go', bounds=(0,5) ),
+                  Bcs=ParMap('b', mapping="Bcs+As", deprivation='control', gostop='stop', bounds=(0,5) ),
+                  Bd =ParMap('b', mapping="Bd +A", deprivation='sleep', gostop='go', bounds=(0,5) ),
+                  Bds=ParMap('b', mapping="Bds+As", deprivation='sleep', gostop='stop', bounds=(0,5)),
+                  A  =ParMap('A', gostop='go', bounds=(0,5)),
+                  As =ParMap('A', gostop='stop', bounds=(0,5)),
+                  V  =ParMap('v', correct=True, gostop='go', bounds=(-5,5)),
+                  v  =ParMap('v', correct=False, gostop='go', bounds=(-5,5)),
+                  Vs =ParMap('v', gostop='stop', bounds=(-5,5)))
 
     print mt
     modstr=mt.generate_model_str()
     print modstr
 
-    loc={}
-    exec(modstr,loc)
-    modcl=loc['testModelLBA_gf']
+    modcl=mt.generate_model_class()
     mod=modcl()#testModel()
     print mod
 

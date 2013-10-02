@@ -88,7 +88,32 @@ class ProgressBar:
 
     def __str__(self):
         return str(self.prog_bar)    
-    
+
+import imp
+import os
+
+def load_class_from_file(filepath, expected_class):
+    """
+    http://stackoverflow.com/questions/301134/dynamic-module-import-in-python
+
+    """
+    class_obj = None
+
+    mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
+
+    if file_ext.lower() == '.py':
+        py_mod = imp.load_source(mod_name, filepath)
+
+    elif file_ext.lower() == '.pyc':
+        py_mod = imp.load_compiled(mod_name, filepath)
+
+    if hasattr(py_mod, expected_class):
+        class_obj = py_mod.__dict__[expected_class]
+
+    return class_obj
+
+
+
 if __name__=="__main__":
     import pylab as pl
     x=np.linspace(-10,10,100)
