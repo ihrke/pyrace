@@ -46,11 +46,27 @@ class {modelname}({parentclass}):
 
 
 class ParMap(object):
-    def __init__(self, accpar, **kwargs):
+    def __init__(self, accpar, mapping=None, **kwargs):
         """
-        if constant!=None, the corresponding variable is set to constant for all entries in the table
+        if mappging!=None (a string), it is used to replace the parameter value.
+        I.e., normally when using
+
+        >> ModelTable(..., driftrate=ParMap('v')),
+
+        the generated code will have
+
+        >> Accumulator( v=driftrate )
+
+        using
+
+        >> ModelTable(..., driftrate=ParMap('v', mapping='driftrate+A')),
+
+        creates
+
+        >> Accumulator( v=driftrate+A )
         """
         self.accpar=accpar
+        self.mapping=mapping
         self.table_index=kwargs
 
 
@@ -144,7 +160,7 @@ class ModelTable():
             if set(levels)!=set(self.design.factor_dict[fac]):
                 raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(self.design.factor_dict[fac]),str(levels)))
         for par in accpars:
-            assert np.any(np.array(self.table[par])!="*"), "some parameters are not set!"
+            assert np.all(np.array(self.table[par])!="*"), "some parameters are not set!\nHere is the model:\n"+str(self)
 
 
     def __repr__(self):
@@ -167,6 +183,10 @@ class ModelTable():
             for iresp, resp in enumerate(self.design.get_responses()):
                 pard={k:self.table[k][(self.table.condition==cond) & (self.table.response==resp)
                                       & (self.table.gostop=='go')].iloc[0] for k in accpars}
+                # replace identity mapping with non-trivial mapping
+                for k in pard.keys():
+                    if k not in self.fixed.keys() and self.modelspec[pard[k]].mapping!=None:
+                        pard[k]=self.modelspec[pard[k]].mapping
                 parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
                 go_acc_def+=tpl.format(cond=cond,resp=resp,iresp=iresp, parlist=parlist)
 
@@ -175,6 +195,11 @@ class ModelTable():
         for cond in range(self.design.nconditions()):
             pard={k:self.table[k][(self.table.condition==cond)
                                   & (self.table.gostop=='stop')].iloc[0] for k in accpars}
+            # replace identity mapping with non-trivial mapping
+            for k in pard.keys():
+                if k not in self.fixed.keys() and self.modelspec[pard[k]].mapping!=None:
+                    pard[k]=self.modelspec[pard[k]].mapping
+
             parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
             stop_acc_def+=tpl.format(cond=cond, parlist=parlist)
 
@@ -208,16 +233,20 @@ class ModelTable():
 if __name__=="__main__":
     import pyrace as pr
 
-    factors=[{'deprivation':['normal', 'sleep']},
+    factors=[{'deprivation':['control', 'sleep']},
              {'stimulus':['left', 'right']}]
     responses=['left', 'right']
     design=pr.Design(factors, responses, 'stimulus', name='singlego')
 
-    mt=ModelTable('testModelLBA', design, pr.pSSLBA,
+    mt=ModelTable('testModelLBAmapping', design, pr.pSSLBA,
                   fixed={'sv':1.0},
                   ter=ParMap('ter'),
-                  b  =ParMap('b'),
-                  A  =ParMap('A'),
+                  Bc =ParMap('b', mapping="Bc +A", deprivation='control', gostop='go'  ),
+                  Bcs=ParMap('b', mapping="Bcs+As", deprivation='control', gostop='stop'),
+                  Bd =ParMap('b', mapping="Bd +A", deprivation='sleep', gostop='go'  ),
+                  Bds=ParMap('b', mapping="Bds+As", deprivation='sleep', gostop='stop'),
+                  A  =ParMap('A', gostop='go'),
+                  As =ParMap('A', gostop='stop'),
                   V  =ParMap('v', correct=True, gostop='go'),
                   v  =ParMap('v', correct=False, gostop='go'),
                   Vs =ParMap('v', gostop='stop'))

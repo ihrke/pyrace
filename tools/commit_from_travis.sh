@@ -11,6 +11,7 @@ git clone --quiet --branch=notebook_tests https://${GH_TOKEN}@github.com/ihrke/p
 #go into diractory and copy data we're interested in to that directory
 cd notebook_tests
 python rerun_nb.py
+python generate_links.py
 
 #add, commit and push files
 git commit -a -m "Travis build $TRAVIS_BUILD_NUMBER"
