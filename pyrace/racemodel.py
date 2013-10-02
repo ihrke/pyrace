@@ -390,7 +390,7 @@ class StopTaskRaceModel(RaceModel):
         a=int(np.sqrt(self.design.nconditions()))
         b=np.ceil(self.design.nconditions()/float(a))
 
-        t=np.linspace(lims[0], lims[1], 1000)
+        t=np.linspace(np.maximum(1e-10,lims[0]), lims[1], 1000)
         for cond in range(self.design.nconditions()):
             pl.subplot(a,b,cond+1)
 

@@ -17,7 +17,10 @@ class {modelname}({parentclass}):
 
     def __init__(self, pars=None):
         self.design={design}
+
         if pars!=None:
+            if not isinstance(pars, self.paramspec):
+                pars=self.paramspec(pars)
             self.set_params(pars)
         else:
             self.set_params(self.__class__.paramspec().random())
@@ -189,6 +192,21 @@ class ModelTable():
 
     def __repr__(self):
         return repr(self.table)
+
+    def _repr_html_(self):
+        """used by ipython notebook"""
+        r="<table>\n"
+        r+="<caption>%s</caption>\n"%self.name
+        r+='<tr>\n'
+        for col in self.table.columns:
+            r+="<TH>%s</TH>"%(col)
+        r+="</tr>\n"
+        for i in range(self.nrows):
+            r+="<tr>"
+            r+="".join(["<TD>%s</TD>"%val for val in list(self.table.irow(i))])
+            r+="\n</tr>\n"
+        r+="</table>\n"
+        return r
 
     def generate_model_str(self):
         self.check_table()

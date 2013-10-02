@@ -14,3 +14,5 @@ from .optimize import *
 from .param import *
 from .plotting import *
 from .modelgen import *
+
+stop_signal_models=[pSSLBA, SSLogNormal, SSWald, SSVarWald]
