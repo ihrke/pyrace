@@ -3,7 +3,9 @@ from .data import *
 from .tools import *
 from .lba import *
 from .swald import *
+from .varwald import *
 from .sswald import *
+from .ssvarwald import *
 from .slognorm import *
 from .sslognorm import *
 from .psslba import *
