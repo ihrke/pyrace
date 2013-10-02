@@ -4,6 +4,7 @@ from .tools import flatten
 
 model_template="""
 import pyrace as pr
+from numpy import inf
 class {modelname}({parentclass}):
     class {modelname}_paramspec(pr.Parameters):
         parnames=[{parnames}]
@@ -46,28 +47,44 @@ class {modelname}({parentclass}):
 
 
 class ParMap(object):
-    def __init__(self, accpar, mapping=None, **kwargs):
+    def __init__(self, accpar, mapping=None, bounds=None, **kwargs):
         """
-        if mappging!=None (a string), it is used to replace the parameter value.
-        I.e., normally when using
+        accpar : str
+            must be one of the accumulator's parameters or pgf/ptf
 
-        >> ModelTable(..., driftrate=ParMap('v')),
+        bounds : (float, float)
+            specify optimization bounds; if not specified, the maximum
+            feasible bounds specified in the definition of each Accumulator
+            are used
 
-        the generated code will have
+        mapping : str
+            if mapping!=None (a string), it is used to replace the parameter value.
+            I.e., normally when using
 
-        >> Accumulator( v=driftrate )
+            >> ModelTable(..., driftrate=ParMap('v')),
 
-        using
+            the generated code will have
 
-        >> ModelTable(..., driftrate=ParMap('v', mapping='driftrate+A')),
+            >> Accumulator( v=driftrate )
 
-        creates
+            using
 
-        >> Accumulator( v=driftrate+A )
+            >> ModelTable(..., driftrate=ParMap('v', mapping='driftrate+A')),
+
+            creates
+
+            >> Accumulator( v=driftrate+A )
         """
         self.accpar=accpar
         self.mapping=mapping
+        self.mybounds=bounds
         self.table_index=kwargs
+
+    def bounds(self):
+        if self.mybounds==None and self.accpar in ['pgf', 'ptf']:
+            return (0,1)
+        else:
+            return self.mybounds
 
 
 class ModelTable():
@@ -183,6 +200,8 @@ class ModelTable():
             modpars += list(self.table[accpar].unique())
         modpars=np.unique(modpars)
 
+
+        ## go-accumulators
         tpl="""        go_acc[{cond}][{iresp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
         go_acc_def=""
         for cond in range(self.design.nconditions()):
@@ -196,6 +215,7 @@ class ModelTable():
                 parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
                 go_acc_def+=tpl.format(cond=cond,resp=resp,iresp=iresp, parlist=parlist)
 
+        ## STOP-accumulators
         tpl="""        stop_acc[{cond}]=self.accumulator_type({parlist}, name='stop-'+':'.join(self.design.condidx({cond})))\n"""
         stop_acc_def=""
         for cond in range(self.design.nconditions()):
@@ -209,6 +229,7 @@ class ModelTable():
             parlist=",".join(["%s=%s"%(k,v) for k,v in pard.items()])
             stop_acc_def+=tpl.format(cond=cond, parlist=parlist)
 
+        ## mixing probabilities
         tpl="""        pgf[{cond}]={pgf}\n"""
         pgf_def=""
         for cond in range(self.design.nconditions()):
@@ -219,14 +240,24 @@ class ModelTable():
         for cond in range(self.design.nconditions()):
             ptf_def+=tpl.format(cond=cond, ptf=self.table['ptf'][self.table.condition==cond].iloc[0])
 
+        ## bounds
+        lower=[]
+        upper=[]
+        for modpar in modpars:
+            bounds=self.modelspec[modpar].bounds()
+            if bounds==None:
+                bounds=self.parentcl.accumulator_type().get_bounds(self.modelspec[modpar].accpar)
+            lower.append(bounds[0])
+            upper.append(bounds[1])
 
+        ## build full model
         modelstr=model_template.format(
             modelname=self.name,
             pardef="\n".join(["        %s=pars.%s"%(par,par) for par in modpars]),
             parnames=",".join(['"%s"'%modpar for modpar in modpars]),
             parentclass="pr."+(self.parentcl.__name__.split(".")[-1]),
-            lower=",".join(["0" for i in range(len(modpars))]),
-            upper=",".join(["1" for i in range(len(modpars))]),
+            lower=",".join([repr(i) for i in lower]),
+            upper=",".join([repr(i) for i in upper]),
             design="pr."+repr(self.design),
             go_accumulator_definition=go_acc_def,
             stop_accumulator_definition=stop_acc_def,
@@ -275,6 +306,7 @@ if __name__=="__main__":
     exec(modstr,loc)
     modcl=loc['testModelLBA_gf']
     mod=modcl()#testModel()
+    print mod
 
     import pylab as pl
     mod.plot_model(lims=(.1,3))

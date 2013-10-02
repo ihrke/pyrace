@@ -143,5 +143,5 @@ class Parameters(object):
         set by lower and upper.
         """
         for i,(l,u) in enumerate(zip( self.__class__.lower, self.__class__.upper)):
-            self.__setitem__(i, np.random.uniform( l, u ))
+            self.__setitem__(i, np.random.uniform( np.maximum(l,-1e20), np.minimum(u,1e20) ))
         return self

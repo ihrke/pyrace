@@ -1,7 +1,4 @@
 import numpy as np
-import scipy
-import scipy.stats as stats
-
 from .tools import *
 from .racemodel import *
 
