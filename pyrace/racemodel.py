@@ -12,12 +12,18 @@ from .param import *
 class Accumulator:
     def __init__(self):
         self.parnames=[]
+        self.lower=[]
+        self.upper=[]
         self.name=""
     def __repr__(self):
         return self.__class__.__name__+"(%s; %s)"%( self.name, ",".join([ "=".join([k,"%.2f"%(self.__dict__[k])])
                                                                           for k in self.parnames]))
     def accname(self):
         return (self.__class__.__name__).split(".")[-1]
+
+    def get_bounds(self,par):
+        ix=self.parnames.index(par)
+        return (self.lower[ix],self.upper[ix])
 
     def pdf(self,t):
         raise NotImplementedError

@@ -9,7 +9,10 @@ class VarWaldAccumulator(Accumulator):
     """
     Wald Distribution with starting point variability
     """
-    parnames=['alpha', 'theta', 'gamma', 'A']
+    parnames=['alpha',    'theta',    'gamma',      'A']
+    lower   =[       0,         0,  -np.infty,        0]
+    upper   =[np.infty,  np.infty,   np.infty, np.infty]
+
     def __init__(self, alpha=np.nan, theta=np.nan, gamma=np.nan, A=np.nan, name='unknown'):
         """
         Wald Distribution with starting point variability.

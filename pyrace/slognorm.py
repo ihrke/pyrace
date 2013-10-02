@@ -10,7 +10,9 @@ class ShiftedLogNormalAccumulator(Accumulator):
     """
     Shifted LogNormal-Distribution.
     """
-    parnames=['ter', 'mu', 'sigma']
+    parnames=[   'ter',      'mu',  'sigma']
+    lower   =[       0, -np.infty,        0]
+    lower   =[np.infty,  np.infty, np.infty]
 
     def __init__(self, ter=np.nan, mu=np.nan, sigma=np.nan, name='unknown'):
         """
