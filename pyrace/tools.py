@@ -27,15 +27,32 @@ def trans_logistic(x, a=0, b=1, inverse=False):
     """ goes from [a,b] to [-inf,+inf] and back;
     inverse=False: [a,b] -> [-inf, +inf]
     inverse=True:  [-inf,+inf] -> [a,b]
+
+    if a or b is +/-infty, a logarithmic/exponential transform is used
     """
+    if a==-np.infty and b==np.infty:
+        return x
+
+    if b==np.infty:
+        if inverse:
+            return np.exp(x)+a
+        else:
+            return np.log( np.maximum(x-a, 0+1e-15) )
+
+    if a==-np.infty:
+        if inverse:
+            return b-np.exp(x)
+        else:
+            return np.log( np.maximum(b-x, 0+1e-15))
 
     if inverse:
-        return (1./(1+np.exp(-x)))*(b-a)+a 
+        return (1./(1+np.exp(-x)))*(b-a)+a
     else:
         # take care of nan
         x=np.where(x<=a, a+1e-12, x)
         x=np.where(x>=b, b-1e-12, x)
         return -np.log( float(b-a)/(x-a)-1)
+
 
 class ProgressBar:
     """stolen from somewhere, I guess PyMC?"""

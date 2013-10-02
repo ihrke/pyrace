@@ -11,7 +11,10 @@ class ShiftedWaldAccumulator(Accumulator):
     
     Note: forget scipy.stats.wald or scipy.stats.invgauss
     """
-    parnames=['alpha', 'theta', 'gamma']
+    parnames=[ 'alpha',    'theta',   'gamma']
+    lower   =[       0,          0, -np.infty]  # these bounds are as large as possible
+    upper   =[np.infty,   np.infty,  np.infty]
+
     def __init__(self, alpha=np.nan, theta=np.nan, gamma=np.nan, name='unknown'):
         """
         Shifted Wald distribution (see Watzke and Wagenmakers, 2009).

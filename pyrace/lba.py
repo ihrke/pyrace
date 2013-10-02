@@ -6,7 +6,10 @@ from .tools import *
 from .racemodel import *
 
 class LBAAccumulator(Accumulator):
-    parnames=['ter','A','v','sv','b']
+    parnames=[   'ter',        'A',       'v',     'sv',      'b']
+    lower   =[       0,          0, -np.infty,        0,        0]  # these bounds are as large as possible
+    upper   =[np.infty,   np.infty,  np.infty, np.infty, np.infty]
+
 
     def __init__(self, ter=np.nan, A=np.nan, v=np.nan, sv=np.nan, b=np.nan, name='unknown'):
         self.ter=float(ter)

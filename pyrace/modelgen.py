@@ -77,11 +77,11 @@ class ModelTable():
 
     Stuff that is missing:
 
-    TODO: specify constant parameters
+    DONE: specify constant parameters
     TODO: boundary specification
             * accumulators should propose maximal boundaries
             * ParMap should implement a tighter setting of those boundaries
-    TODO: arbitrary parameter-mapping (e.g., map b to A+B)
+    DONE: arbitrary parameter-mapping (e.g., map b to A+B)
     TODO: indexing better (currently only indexing of the sort dataframe[column==value] allowed in
           ParMap. Should allow, e.g., dataframe[column %in% list] etc
 

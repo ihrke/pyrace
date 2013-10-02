@@ -127,7 +127,24 @@ class testTools(unittest.TestCase):
         assert pr.trans_logistic(0.4)<0
         assert pr.trans_logistic(0.6)>0
         assert np.abs(pr.trans_logistic(0.5))<1e-5
-        
+
+    def test_generalized_trans_logistic(self):
+        x=np.linspace(-1000,1000,10000)
+        y=pr.trans_logistic(x, -1000, +np.infty)
+        x2=pr.trans_logistic(y, -1000, +np.infty, inverse=True)
+        assert np.all( np.abs(x-x2)<1e-8 )
+
+        x=np.linspace(-1000,1000,10000)
+        y= pr.trans_logistic(x, -np.infty, +1000)
+        x2=pr.trans_logistic(y, -np.infty, +1000, inverse=True)
+        assert np.all( np.abs(x-x2)<1e-8 )
+
+        x=np.linspace(-1000,1000,10000)
+        y= pr.trans_logistic(x, -np.infty, +np.infty)
+        x2=pr.trans_logistic(y, -np.infty, +np.infty, inverse=True)
+        assert np.all( np.abs(x-x2)<1e-8 )
+
+
 class testPlotting(PlottingEnabledTestCase):
     def test_plot_bar_parameters1(self):
         class whatever(pr.Parameters):
