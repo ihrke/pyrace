@@ -34,44 +34,6 @@ class {modelname}({parentclass}):
     """
 
 
-def generate_model( modname, design, modelclass, model_table, as_string=False):
-    accpars=modelclass.accumulator_type.parnames
-    assert np.all([par in model_table.columns for par in accpars]), 'TableError: not all parameters present'
-    assert np.all([fac in model_table.columns for fac in design.factors]), 'TableError: not all factors present'
-    for fac in design.factors:
-        levels=model_table[fac].unique()
-        if set(levels)!=set(design.factor_dict[fac]):
-            raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(design.factor_dict[fac]),str(levels)))
-
-    modpars=[]
-    for accpar in accpars:
-        modpars += list(model_table[accpar].unique())
-    modpars=np.unique(modpars)
-
-    tpl="""        go_acc[{cond}][{resp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
-    go_acc_def=""
-    for cond,resp in itertools.product( range(design.nconditions()), design.get_responses()):
-        print cond, resp
-        pard={k:model_table[(model_table.condidx==cond) & (model_table.response==resp)][k][0] for k in accpars}
-        print pard
-        parlist=",".join(["%s=pars.%s"%(k,v[0]) for k,v in pard.items()])
-        go_acc_def+=tpl.format(cond=cond,resp=resp, parlist=parlist)
-
-
-    modelstr=model_template.format(
-        modelname=modname,
-        parnames=",".join(['"%s"'%modpar for modpar in modpars]),
-        parentclass="pr."+(modelclass.__name__.split(".")[-1]),
-        lower=",".join(["0" for i in range(len(modpars))]),
-        upper=",".join(["1" for i in range(len(modpars))]),
-        go_accumulator_definition=go_acc_def,
-        stop_accumulator_definition=""
-    )
-    loc_dict={}
-    print modelstr
-    #exec(modelstr, globals(), loc_dict)
-
-    return loc_dict[modname]
 
 
 
@@ -129,6 +91,9 @@ class ModelTable():
         self.init_empty_table()
 
         for parname, spec in self.modelspec.items():
+            if spec.accpar not in self.table.columns:
+                raise Exception("Accumulator parameter '%s' for Accumulator '%s' unknown"%(str(spec.accpar),
+                                        str(self.parentcl.accumulator_type.__name__)))
             ind=np.ones(self.nrows, dtype=np.bool)*True
             for col,ix in spec.table_index.items():
                 try:
@@ -136,52 +101,74 @@ class ModelTable():
                 except:
                     raise Exception('index error: self.table[%s]==%s'%(str(col), str(ix)))
                 ind=np.logical_and(ind, self.table[col]==ix)
+            if np.any( np.array(self.table[spec.accpar][ind])!="*"):
+                print "WARNING: overwriting previous specifications; Model may be misspecified."
+                print "   Check resulting table wether the model does what you want!"
             self.table[spec.accpar][ind]=parname
+
+    def check_table(self):
+        accpars=self.parentcl.accumulator_type.parnames
+        assert np.all([par in self.table.columns for par in accpars]), 'TableError: not all parameters present'
+        assert np.all([fac in self.table.columns for fac in self.design.factors]), 'TableError: not all factors present'
+        for fac in self.design.factors:
+            levels=self.table[fac].unique()
+            if set(levels)!=set(self.design.factor_dict[fac]):
+                raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(self.design.factor_dict[fac]),str(levels)))
+
 
     def __repr__(self):
         return repr(self.table)
 
+    def generate_model(self, as_string=False):
+        self.check_table()
+
+        accpars=self.parentcl.accumulator_type.parnames
+        modpars=[]
+        for accpar in accpars:
+            modpars += list(self.table[accpar].unique())
+        modpars=np.unique(modpars)
+
+        tpl="""        go_acc[{cond}][{resp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
+        go_acc_def=""
+        for cond,resp in itertools.product( range(self.design.nconditions()), self.design.get_responses()):
+            print cond, resp
+            pard={k:self.table[(self.table.condition==cond) & (self.table.response==resp)][k][0] for k in accpars}
+            print pard
+            parlist=",".join(["%s=pars.%s"%(k,v[0]) for k,v in pard.items()])
+            go_acc_def+=tpl.format(cond=cond,resp=resp, parlist=parlist)
+
+
+        modelstr=model_template.format(
+            modelname=self.modelname,
+            parnames=",".join(['"%s"'%modpar for modpar in modpars]),
+            parentclass="pr."+(self.parentcl.__name__.split(".")[-1]),
+            lower=",".join(["0" for i in range(len(modpars))]),
+            upper=",".join(["1" for i in range(len(modpars))]),
+            go_accumulator_definition=go_acc_def,
+            stop_accumulator_definition=""
+        )
+        loc_dict={}
+        print modelstr
+        #exec(modelstr, globals(), loc_dict)
+
+        return loc_dict[modname]
 
 
 
 if __name__=="__main__":
-    if False:
-        model_tab="""
-        condidx, deprivation, stimulus, response, theta, alpha, gamma
-              0,     normal,     left,     left,   ter,     b,     V
-              0,     normal,     left,    right,   ter,     b,     v
-              0,     normal,     left,     stop,   ter,     b,    Vs
-              1,     normal,    right,     left,   ter,     b,     v
-              1,     normal,    right,    right,   ter,     b,     V
-              1,     normal,    right,     stop,   ter,     b,    Vs
-              2,       sleep,     left,     left,   ter,     b,     V
-              2,       sleep,     left,    right,   ter,     b,     v
-              2,       sleep,     left,     stop,   ter,     b,    Vs
-              3,       sleep,    right,     left,   ter,     b,     v
-              3,       sleep,    right,    right,   ter,     b,     V
-              3,       sleep,    right,     stop,   ter,     b,    Vs
-        """
-        import StringIO
-        sio=StringIO.StringIO(model_tab.strip())
-        #sio.write(model_tab)
-        df=pd.read_csv(sio, skipinitialspace=True, )
-        #print df
-
-        #mocl2=modelspec("TestModel2", design, pr.SSWald,
-        #                V=Par('gamma', varies=['gostop', 'correct']))
-
     factors=[{'deprivation':['normal', 'sleep']},
              {'stimulus':['left', 'right']}]
     responses=['left', 'right']
     design=pr.Design(factors, responses, 'stimulus', name='singlego')
 
     mt=ModelTable('testModel', design, pr.SSWald,
-               ter=ParMap('theta'), b=ParMap('alpha'),
-               V=ParMap('gamma', correct=True, gostop='go'),
-               v=ParMap('gamma', correct=False, gostop='go'),
-               Vs=ParMap('gamma', gostop='stop'))
+                  ter=ParMap('theta'), b=ParMap('alpha'),
+                  V=ParMap('gamma', correct=True, gostop='go'),
+                  v=ParMap('gamma', correct=False, gostop='go'),
+                  Vs=ParMap('gamma', gostop='stop'))
 
     print mt
+    mt.generate_model()
 #    modcl=generate_model( "TestModel", design, pr.SSWald, df)
 #    mod=modcl(design)
 #    print mod
