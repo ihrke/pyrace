@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pyrace as pr
 import itertools
+from .tools import flatten
 
 model_template="""
 class {modelname}({parentclass}):
@@ -73,37 +74,114 @@ def generate_model( modname, design, modelclass, model_table, as_string=False):
     return loc_dict[modname]
 
 
-if __name__=="__main__":
-    model_tab="""
-    condidx, deprivation, stimulus, response, theta, alpha, gamma
-          0,     normal,     left,     left,   ter,     b,     V
-          0,     normal,     left,    right,   ter,     b,     v
-          0,     normal,     left,     stop,   ter,     b,    Vs
-          1,     normal,    right,     left,   ter,     b,     v
-          1,     normal,    right,    right,   ter,     b,     V
-          1,     normal,    right,     stop,   ter,     b,    Vs
-          2,       sleep,     left,     left,   ter,     b,     V
-          2,       sleep,     left,    right,   ter,     b,     v
-          2,       sleep,     left,     stop,   ter,     b,    Vs
-          3,       sleep,    right,     left,   ter,     b,     v
-          3,       sleep,    right,    right,   ter,     b,     V
-          3,       sleep,    right,     stop,   ter,     b,    Vs
-    """
-    import StringIO
-    sio=StringIO.StringIO(model_tab.strip())
-    #sio.write(model_tab)
-    df=pd.read_csv(sio, skipinitialspace=True, )
-    #print df
 
-    #mocl2=modelspec("TestModel2", design, pr.SSWald,
-    #                V=Par('gamma', varies=['gostop', 'correct']))
+class ParMap(object):
+    def __init__(self, accpar, **kwargs):
+        self.accpar=accpar
+        self.table_index=kwargs
+
+
+class ModelTable():
+    """Tabular representation of a race-model"""
+
+    def __init__(self, modelname, design, parentcl, **modelspec):
+        """
+        modelname : str
+            just a name for the model
+
+        design : pyrace.Design
+
+        parentcl : class
+            the parentclass for the model (e.g., pyrace.SSVarWald)
+
+        modelspec : kw-args
+            dict of ParMap objects specifying the relationship between key
+            and entry in table
+        """
+        self.name=modelname
+        self.design=design
+        self.parentcl=parentcl
+        self.modelspec=modelspec
+        self.init_modelspec()
+
+    def init_empty_table(self):
+        conditions=flatten([[i]*(self.design.nresponses()+1) for i in range(self.design.nconditions())])
+        responses =flatten([self.design.get_responses()+['stop'] for i in range(self.design.nconditions())])
+        correct   =[self.design.correct_response(cond)==resp for cond,resp in zip(conditions,responses)]
+        gostop    =['go' if resp!='stop' else 'stop' for resp in responses]
+
+        # factor columns in correct order
+        factors=[(k,[]) for k in self.design.factors]
+        for cond in conditions:
+            condl=self.design.factors_from_int[cond]
+            for i,(fac,val) in enumerate(zip(self.design.factors, condl)):
+                factors[i][1].append(val)
+
+        # accumulator columns in good order
+        accpars=[(k,'*') for k in self.parentcl.accumulator_type.parnames]
+
+        df=pd.DataFrame.from_items([('condition', conditions),
+            ('response', responses), ('gostop',gostop), ('correct', correct)]+factors+accpars)
+        self.table=df
+        self.nrows=df.shape[0]
+
+    def init_modelspec(self):
+        self.init_empty_table()
+
+        for parname, spec in self.modelspec.items():
+            ind=np.ones(self.nrows, dtype=np.bool)*True
+            for col,ix in spec.table_index.items():
+                try:
+                    self.table[col]==ix
+                except:
+                    raise Exception('index error: self.table[%s]==%s'%(str(col), str(ix)))
+                ind=np.logical_and(ind, self.table[col]==ix)
+            self.table[spec.accpar][ind]=parname
+
+    def __repr__(self):
+        return repr(self.table)
+
+
+
+
+if __name__=="__main__":
+    if False:
+        model_tab="""
+        condidx, deprivation, stimulus, response, theta, alpha, gamma
+              0,     normal,     left,     left,   ter,     b,     V
+              0,     normal,     left,    right,   ter,     b,     v
+              0,     normal,     left,     stop,   ter,     b,    Vs
+              1,     normal,    right,     left,   ter,     b,     v
+              1,     normal,    right,    right,   ter,     b,     V
+              1,     normal,    right,     stop,   ter,     b,    Vs
+              2,       sleep,     left,     left,   ter,     b,     V
+              2,       sleep,     left,    right,   ter,     b,     v
+              2,       sleep,     left,     stop,   ter,     b,    Vs
+              3,       sleep,    right,     left,   ter,     b,     v
+              3,       sleep,    right,    right,   ter,     b,     V
+              3,       sleep,    right,     stop,   ter,     b,    Vs
+        """
+        import StringIO
+        sio=StringIO.StringIO(model_tab.strip())
+        #sio.write(model_tab)
+        df=pd.read_csv(sio, skipinitialspace=True, )
+        #print df
+
+        #mocl2=modelspec("TestModel2", design, pr.SSWald,
+        #                V=Par('gamma', varies=['gostop', 'correct']))
 
     factors=[{'deprivation':['normal', 'sleep']},
              {'stimulus':['left', 'right']}]
     responses=['left', 'right']
     design=pr.Design(factors, responses, 'stimulus', name='singlego')
 
+    mt=ModelTable('testModel', design, pr.SSWald,
+               ter=ParMap('theta'), b=ParMap('alpha'),
+               V=ParMap('gamma', correct=True, gostop='go'),
+               v=ParMap('gamma', correct=False, gostop='go'),
+               Vs=ParMap('gamma', gostop='stop'))
 
-    modcl=generate_model( "TestModel", design, pr.SSWald, df)
-    mod=modcl(design)
-    print mod
+    print mt
+#    modcl=generate_model( "TestModel", design, pr.SSWald, df)
+#    mod=modcl(design)
+#    print mod

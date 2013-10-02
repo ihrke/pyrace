@@ -2,8 +2,13 @@
 import sys, time
 import numpy as np
 import scipy.stats as stats
+from itertools import chain
 
 list_is_eq=lambda l1,l2: len(l1)==len(l2) and (len(set(l1).intersection(l2)) > 0)
+
+def flatten(listOfLists):
+    "Flatten one level of nesting"
+    return list(chain.from_iterable(listOfLists))
 
 ## NOTE: is it a good idea to set a hard numerical threshold (i.e., 7)?
 ##  should maybe depend on mean/sd? E.g. crit=mean+7*sd ?
