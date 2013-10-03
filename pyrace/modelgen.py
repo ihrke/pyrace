@@ -231,7 +231,7 @@ class ModelTable():
             if set(levels)!=set(self.design.factor_dict[fac]):
                 raise TypeError("column '%s' in table does not contain all levels from %s: %s"%(fac,str(self.design.factor_dict[fac]),str(levels)))
         for par in accpars+['pgf','ptf']:
-            assert np.all(np.array(self.table[par])!="*"), "some parameters are not set!\nHere is the model:\n"+str(self)
+            assert np.all(np.array(self.table[par])!="*"), "%s: some parameters are not set!\nHere is the model:\n"%(self.name)+str(self)
 
 
     def __repr__(self):
@@ -351,6 +351,7 @@ class ModelTable():
         co_paramspec.__module__="__main__"
         classobj.__module__="__main__"
         classobj.paramspec=co_paramspec  ## required!! else we old paramspec
+        classobj.modeltable=self
         return classobj
 
     def generate_model_obj(self, pars=None):
