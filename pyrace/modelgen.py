@@ -73,7 +73,17 @@ def _load_classinst_from_string(classstr, classname, objdict):
     fname=tempfile.mktemp(suffix='.py')
     with open(fname,'w') as f:
         f.write(classstr)
-    classobj=load_class_from_file(fname, classname)
+
+    ## TODO: ugly hack to enable resetting of model.paramspec to updated paramspec
+    ## TODO: should really be removed in future versions
+    if not classname.endswith("_paramspec"):
+        classobj,co_paramspec=load_class_from_file(fname, [classname, classname+"_paramspec"])
+        co_paramspec.modelstr=classstr
+        co_paramspec.__module__="__main__"
+        classobj.paramspec=co_paramspec
+    else:
+        classobj=load_class_from_file(fname, classname)
+        co_paramspec=None
     if classobj==None:
         raise ValueError("reconstruction of '%s' failed. This is the classstr: %s"%(classname, classstr))
 
@@ -338,8 +348,9 @@ class ModelTable():
         classobj.modelstr=modelstr
         co_paramspec.modelstr=modelstr
 
+        co_paramspec.__module__="__main__"
         classobj.__module__="__main__"
-
+        classobj.paramspec=co_paramspec  ## required!! else we old paramspec
         return classobj
 
     def generate_model_obj(self, pars=None):
