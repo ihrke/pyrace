@@ -106,7 +106,7 @@ class Design:
             raise TypeError("don't know what to do with condition %s"%str(condition))
 
     def __eq__(self, other):
-        return self.__dict__==other.__dict__
+        return self.__class__==other.__class__ and self.__dict__==other.__dict__
 
 if __name__=="__main__":
     factors=[{'sleepdep':['normal','deprived']},

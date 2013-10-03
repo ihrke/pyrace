@@ -15,6 +15,7 @@ class {modelname}_paramspec(pr.Parameters):
     parnames=[{parnames}]
     lower   =[{lower}]
     upper   =[{upper}]
+    modelstr=""
 
     def __reduce__(self):
         return (_load_classinst_from_string, (self.modelstr, self.__class__.__name__, self.__dict__))
@@ -22,6 +23,7 @@ class {modelname}_paramspec(pr.Parameters):
 class {modelname}({parentclass}):
 
     paramspec={modelname}_paramspec
+    modelstr=""
 
     def __init__(self, pars=None):
         self.design={design}
@@ -36,6 +38,7 @@ class {modelname}({parentclass}):
 
     def copy(self):
         m=self.__class__(self.params)
+        m.modelstr=self.modelstr
         return m
 
     def __reduce__(self):
@@ -71,8 +74,10 @@ def _load_classinst_from_string(classstr, classname, objdict):
     with open(fname,'w') as f:
         f.write(classstr)
     classobj=load_class_from_file(fname, classname)
-    classobj.modelstr=classstr
+    if classobj==None:
+        raise ValueError("reconstruction of '%s' failed. This is the classstr: %s"%(classname, classstr))
 
+    classobj.modelstr=classstr
     classobj.__module__="__main__"
 
     inst=classobj()

@@ -41,7 +41,6 @@ def optimize_multi(model, data, pool=None, ncpu=2, start_points=None, progressba
        for io,opt in enumerate(optimizers):
            optimizers[io].set_startpoint(start_points[io])
 
-
     if not progressbar:
         opts=pool.map( _run_optim, optimizers )
     else:
