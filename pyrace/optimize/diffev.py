@@ -263,7 +263,9 @@ class DEOptimizer(Optimizer):
         self.opts.update({"F":F, 'CR':CR, "gen_max":gen_max, 'save_stats':save_stats, 'trace_stats':trace_stats,
                           'xtol':xtol, 'ftol':ftol, 'nxtol':nxtol, 'progressbar':self.progressbar})
 
-    def optimize(self, pop_ini=None, progressbar=False):
+    def optimize(self, pop_ini=None, progressbar=None):
+        if progressbar==None:
+            progressbar=self.opts['progressbar']
         oldprogressbar=self.opts['progressbar']
         self.opts.update({'progressbar':progressbar})
         if pop_ini!=None:
