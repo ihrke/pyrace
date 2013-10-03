@@ -91,13 +91,16 @@ class ProgressBar:
 
 import imp
 import os
+from collections import Iterable
 
-def load_class_from_file(filepath, expected_class):
+def load_class_from_file(filepath, expected_classes):
     """
     http://stackoverflow.com/questions/301134/dynamic-module-import-in-python
 
     """
-    class_obj = None
+    if isinstance(expected_classes,str):
+        expected_classes=[expected_classes]
+    class_obj = [None for cl in expected_classes]
 
     mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
 
@@ -107,10 +110,11 @@ def load_class_from_file(filepath, expected_class):
     elif file_ext.lower() == '.pyc':
         py_mod = imp.load_compiled(mod_name, filepath)
 
-    if hasattr(py_mod, expected_class):
-        class_obj = py_mod.__dict__[expected_class]
+    for i,expected_class in enumerate(expected_classes):
+        if hasattr(py_mod, expected_class):
+            class_obj[i] = py_mod.__dict__[expected_class]
 
-    return class_obj
+    return class_obj[0] if len(class_obj)==1 else tuple(class_obj)
 
 
 

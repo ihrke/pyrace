@@ -4,14 +4,22 @@ import pandas as pd
 import tempfile
 from .tools import *
 
+__all__=['ParMap', "ModelTable"]
+
 model_template="""
 import pyrace as pr
+from pyrace.modelgen import _load_classinst_from_string
 from numpy import inf
+
+class {modelname}_paramspec(pr.Parameters):
+    parnames=[{parnames}]
+    lower   =[{lower}]
+    upper   =[{upper}]
+
+    def __reduce__(self):
+        return (_load_classinst_from_string, (self.modelstr, self.__class__.__name__, self.__dict__))
+
 class {modelname}({parentclass}):
-    class {modelname}_paramspec(pr.Parameters):
-        parnames=[{parnames}]
-        lower   =[{lower}]
-        upper   =[{upper}]
 
     paramspec={modelname}_paramspec
 
@@ -29,6 +37,9 @@ class {modelname}({parentclass}):
     def copy(self):
         m=self.__class__(self.params)
         return m
+
+    def __reduce__(self):
+        return (_load_classinst_from_string, (self.modelstr, self.name(), self.__dict__))
 
     def set_params(self, pars):
         self.params=pars
@@ -54,6 +65,20 @@ class {modelname}({parentclass}):
         self.set_mixing_probabilities(pgf, ptf)
     """
 
+
+def _load_classinst_from_string(classstr, classname, objdict):
+    fname=tempfile.mktemp(suffix='.py')
+    with open(fname,'w') as f:
+        f.write(classstr)
+    classobj=load_class_from_file(fname, classname)
+    classobj.modelstr=classstr
+
+    classobj.__module__="__main__"
+
+    inst=classobj()
+    inst.__dict__=objdict
+
+    return inst
 
 class ParMap(object):
     def __init__(self, accpar, mapping=None, bounds=None, **kwargs):
@@ -299,15 +324,25 @@ class ModelTable():
               (which, believe me, can make a lot of trouble...)
         """
         modelstr=self.generate_model_str()
+
         fname=tempfile.mktemp(suffix='.py')
         with open(fname,'w') as f:
             f.write(modelstr)
-        classobj=load_class_from_file(fname, self.name)
+        (classobj, co_paramspec)=load_class_from_file(fname, [self.name, self.name+"_paramspec"])
+
+        classobj.modelstr=modelstr
+        co_paramspec.modelstr=modelstr
+
+        classobj.__module__="__main__"
+
         return classobj
 
+    def generate_model_obj(self):
+        pass
 
 if __name__=="__main__":
     import pyrace as pr
+    import pickle
 
     factors=[{'deprivation':['control', 'sleep']},
              {'stimulus':['left', 'right']}]
@@ -337,9 +372,17 @@ if __name__=="__main__":
     mod=modcl()#testModel()
     print mod
 
-    import pylab as pl
-    mod.plot_model(lims=(.1,3))
-    pl.show()
+    with open('test.pickle', 'w') as f:
+        pickle.dump(mod, f)
+    print mod.__module__
+
+    #mod2 = pickle.loads(pickle.dumps(mod))
+
+    #print mod2
+    #print mod2.modelstr
+    #import pylab as pl
+    #mod.plot_model(lims=(.1,3))
+    #pl.show()
 
 #    modcl=generate_model( "TestModel", design, pr.SSWald, df)
 #    mod=modcl(design)
