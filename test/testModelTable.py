@@ -1,5 +1,6 @@
 from common import *
 from pyrace import ParMap
+import pickle
 
 class testModelTable(PlottingEnabledTestCase):
     def test_model1(self):
@@ -145,6 +146,32 @@ class testModelTable(PlottingEnabledTestCase):
         pl.clf()
         mod.plot_model(lims=(.1,3))
         self.savefig()
+
+    def test_pickle(self):
+        factors=[{'deprivation':['control', 'sleep']},
+                 {'stimulus':['left', 'right']}]
+        responses=['left', 'right']
+        design=pr.Design(factors, responses, 'stimulus', name='singlego')
+
+        mt=pr.ModelTable('testModelLBA_gf_bounds', design, pr.pSSLBA,
+                      fixed={'sv':1.0, 'ptf':0},
+                      ter=ParMap('ter', bounds=(0,3)),
+                      gf =ParMap('pgf', deprivation='control'),
+                      gfs=ParMap('pgf', deprivation='sleep'),
+                      Bc =ParMap('b', mapping="Bc +A", deprivation='control', gostop='go', bounds=(0,5) ),
+                      Bcs=ParMap('b', mapping="Bcs+As", deprivation='control', gostop='stop', bounds=(0,5) ),
+                      Bd =ParMap('b', mapping="Bd +A", deprivation='sleep', gostop='go', bounds=(0,5) ),
+                      Bds=ParMap('b', mapping="Bds+As", deprivation='sleep', gostop='stop', bounds=(0,5)),
+                      A  =ParMap('A', gostop='go', bounds=(0,5)),
+                      As =ParMap('A', gostop='stop', bounds=(0,5)),
+                      V  =ParMap('v', correct=True, gostop='go', bounds=(-5,5)),
+                      v  =ParMap('v', correct=False, gostop='go', bounds=(-5,5)),
+                      Vs =ParMap('v', gostop='stop', bounds=(-5,5)))
+
+        mod=mt.generate_model_obj()
+        mod2=pickle.loads(pickle.dumps(mod))
+        assert repr(mod)==repr(mod2)
+        assert mod.__dict__==mod2.__dict__
 
 
 if __name__ == '__main__':

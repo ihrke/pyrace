@@ -337,8 +337,9 @@ class ModelTable():
 
         return classobj
 
-    def generate_model_obj(self):
-        pass
+    def generate_model_obj(self, pars=None):
+        modcl=self.generate_model_class()
+        return modcl(pars=pars)
 
 if __name__=="__main__":
     import pyrace as pr

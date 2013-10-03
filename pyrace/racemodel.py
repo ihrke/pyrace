@@ -25,6 +25,9 @@ class Accumulator:
         ix=self.parnames.index(par)
         return (self.lower[ix],self.upper[ix])
 
+    def __eq__(self, other):
+        return self.__dict__==other.__dict__
+
     def pdf(self,t):
         raise NotImplementedError
     def cdf(self,t):

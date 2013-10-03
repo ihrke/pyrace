@@ -26,6 +26,9 @@ class Parameters(object):
                                       parlist=",".join(["%s=%.2f"%(k,self.pars[k]) for k in self.__class__.parnames]))
         return r
 
+    def __eq__(self, other):
+        return self.__dict__==other.__dict__
+
     def _repr_html_(self):
         """used by ipython notebook"""
         r="<table>\n"
