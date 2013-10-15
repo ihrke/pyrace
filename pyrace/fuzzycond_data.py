@@ -16,10 +16,11 @@ class FuzzyConditionStopTaskDataSet(StopTaskDataSet):
 
         Internally, it stores the data using the following structure:
 
-        condition SSD RT response
+        condition SSD RT response condprob
 
-        where condition is an a list of probabilities that this trial corresponds
-        to this index' condition.
+        where condprob is an a list of probabilities that this trial corresponds
+        to this index' condition and condition is the most likely condition
+        (argmax of condprob).
 
         * if SSD==np.nan -> GO-trial
         * if RT==np.nan -> missed/successful STOP
@@ -70,26 +71,19 @@ class FuzzyConditionStopTaskDataSet(StopTaskDataSet):
         if np.any(self.response>=self.design.nresponses()):
             raise ValueError
 
-        # conditions
-        self.condition=np.array(data[self.mapping['condition']])
-        if self.condition.shape!=(self.ntrials, self.design.nconditions()):
+        # condprobs
+        self.condprob=np.array(data[self.mapping['condition']])
+        if self.condprob.shape!=(self.ntrials, self.design.nconditions()):
             raise ValueError
 
+        # conditions
+        self.condition=np.argmax(self.condprob, axis=1)
+
     def define_checks(self):
-        checks=['r=len(self.RT)==self.ntrials',
-            'r=len(self.SSD)==self.ntrials',
-            'r=len(self.response)==self.ntrials',
-            'r=len(self.condition)==self.ntrials',
-            ('GO(NA)==responses<0', 'ix=np.isnan(self.SSD); r=np.all(np.where(np.isnan(self.RT[ix]))[0]==np.where(self.response[ix]<0)[0])'),
-            'r=self.RT.dtype==np.float',
-            'r=self.SSD.dtype==np.float',
-            'r=self.response.dtype==np.int',
-            'r=self.condition.shape==(self.ntrials,self.design.nconditions())',
-            ('fuzzy sum to one?', 'r=np.all(np.sum(self.condition, axis=1)==1)'),
-            ('RT  : any stop trials?', 'r=np.any(np.isnan(self.RT))'),
-            ('SSD : any stop trials?', 'r=np.any(np.isnan(self.SSD))'),
-            ('resp: any stop trials?', 'r=np.any(self.response<0)'),
-            ('RT(nan) wherevever resp<0?', 'r=np.all( np.where(np.isnan(self.RT))[0]==np.where(self.response<0)[0])'),
+        checks=StopTaskDataSet.define_checks(self)
+        checks+=[
+            'r=self.condprob.shape==(self.ntrials,self.design.nconditions())',
+            ('fuzzy sum to one?', 'r=np.all(np.sum(self.condprob, axis=1)==1)'),
             ]
         return checks
 
@@ -105,7 +99,7 @@ class FuzzyConditionStopTaskDataSet(StopTaskDataSet):
                              'response':self.response})
             for cond in range(self.design.nconditions()):
                 col=":".join(self.design.condidx(cond))
-                df[col]=self.condition[:,cond]
+                df[col]=self.condprob[:,cond]
         else:
             raise ValueError("don't know how to handle format %s"%form)
         return df
