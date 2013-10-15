@@ -154,6 +154,29 @@ class StopTaskDataSet(object):
             ntrials=self.ntrials)
         return r
 
+    def define_checks(self):
+        """
+        allows easy redefinition of checks in subclasses
+        """
+        checks=['r=len(self.RT)==self.ntrials',
+            'r=len(self.SSD)==self.ntrials',
+            'r=len(self.response)==self.ntrials',
+            'r=len(self.condition)==self.ntrials',
+            'r=len(self.correct)==self.ntrials',
+            ('GO(NA)==responses<0', 'ix=np.isnan(self.SSD); r=np.all(np.where(np.isnan(self.RT[ix]))[0]==np.where(self.response[ix]<0)[0])'),
+            'r=self.RT.dtype==np.float',
+            'r=self.SSD.dtype==np.float',
+            'r=self.response.dtype==np.int',
+            'r=self.condition.dtype==np.int',
+            'r=self.correct.dtype==np.int',
+            ('all conditions?', 'r= np.all(np.array(sorted(np.unique(self.condition)))==np.arange(self.design.nconditions()))'),
+            ('RT  : any stop trials?', 'r=np.any(np.isnan(self.RT))'),
+            ('SSD : any stop trials?', 'r=np.any(np.isnan(self.SSD))'),
+            ('resp: any stop trials?', 'r=np.any(self.response<0)'),
+            ('RT(nan) wherevever resp<0?', 'r=np.all( np.where(np.isnan(self.RT))[0]==np.where(self.response<0)[0])'),
+            ]
+        return checks
+
     def check(self, verbose=False, ret_all=False):
         """
         Make a few consistency checks. Print's out some messages if verbose==True.
@@ -165,24 +188,8 @@ class StopTaskDataSet(object):
         """
         if verbose:
             print "> Checking dataset '%s' (%i trials)..."%(self.name,self.ntrials)
-            
-        checks=['r=len(self.RT)==self.ntrials',
-                'r=len(self.SSD)==self.ntrials',
-                'r=len(self.response)==self.ntrials',
-                'r=len(self.condition)==self.ntrials',
-                'r=len(self.correct)==self.ntrials',
-                ('GO(NA)==responses<0', 'ix=np.isnan(self.SSD); r=np.all(np.where(np.isnan(self.RT[ix]))[0]==np.where(self.response[ix]<0)[0])'),
-                'r=self.RT.dtype==np.float',
-                'r=self.SSD.dtype==np.float',
-                'r=self.response.dtype==np.int',
-                'r=self.condition.dtype==np.int',
-                'r=self.correct.dtype==np.int',
-                ('all conditions?', 'r= np.all(np.array(sorted(np.unique(self.condition)))==np.arange(self.design.nconditions()))'),
-                ('RT  : any stop trials?', 'r=np.any(np.isnan(self.RT))'),
-                ('SSD : any stop trials?', 'r=np.any(np.isnan(self.SSD))'),
-                ('resp: any stop trials?', 'r=np.any(self.response<0)'),
-                ('RT(nan) wherevever resp<0?', 'r=np.all( np.where(np.isnan(self.RT))[0]==np.where(self.response<0)[0])'),
-                ]
+
+        checks=self.define_checks()
         results=[False for _ in range(len(checks))]
         for ic,check in enumerate(checks):
             ch=check[1] if isinstance(check,tuple) else check
@@ -318,14 +325,17 @@ class StopTaskDataSet(object):
             
     
 if __name__=="__main__":
+    import os
+
     factors=[{'sleepdep':['normal','deprived']},
              {'stimulus':['left', 'right']}]
     responses=['left','right']
     design=Design(factors,responses, 'stimulus')
-    dat=pd.read_csv('./data/sleep_stop_onesubj_test.csv')
+    dat=pd.read_csv('./test/data/sleep_stop_onesubj_test.csv')
     print dat.shape[0]
     dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
     ds=StopTaskDataSet(design,dat)
-    print ds.as_dataframe(conditions_expanded=False).head(50)
-    print ds.as_dataframe(conditions_expanded=True).head(50)
-    print ds.as_dataframe(form='wide', conditions_expanded=True).head(50)
+    ds.check(verbose=True)
+    #print ds.as_dataframe(conditions_expanded=False).head(50)
+    #print ds.as_dataframe(conditions_expanded=True).head(50)
+    #print ds.as_dataframe(form='wide', conditions_expanded=True).head(50)

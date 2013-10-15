@@ -217,7 +217,7 @@ class ModelTable():
                     raise Exception('index error: self.table[%s]==%s'%(str(col), str(ix)))
                 ind=np.logical_and(ind, self.table[col]==ix)
             if np.any( np.array(self.table[spec.accpar][ind])!="*"):
-                print "WARNING: overwriting previous specifications; Model may be misspecified."
+                print "WARNING (%s): overwriting previous specifications; Model may be misspecified."%(self.name)
                 print "   Check resulting table wether the model does what you want!"
             self.table[spec.accpar][ind]=parname
         self.check_table()
