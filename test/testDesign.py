@@ -44,6 +44,7 @@ class testDataSet(unittest.TestCase):
         assert dat.shape[0]==800
         dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
         ds=StopTaskDataSet(design,dat)
+        assert ds.check(verbose=True)
         assert len(ds.RT)==len(ds.condition)
         assert len(ds.SSD)==len(ds.RT)
         assert len(ds.response)==len(ds.RT)
@@ -60,7 +61,6 @@ class testDataSet(unittest.TestCase):
 
         assert self.design.factorval(3,'sleepdep')=='deprived'
         assert self.design.factorval(3,'stimulus')=='right'
-
 
 class testTools(unittest.TestCase):
     def test_dnormP(self):

@@ -9,7 +9,7 @@ from .design import Design
 class StopTaskDataSet(object):
     def __init__(self, design, data=None, name=None, format='wide', mapping=None):
         """
-        Implements a data-set for the stop-task.
+        Implements a data-set for the stop-task (single subject).
 
         Internally, it stores the data using the following structure:
 
@@ -260,7 +260,7 @@ class StopTaskDataSet(object):
         r+= " SSD | "+" ".join(["%7.2f"%(i) for i in (a[:,0])]) +"\n"            
         return r
 
-    def get_ssd_dist(self, condition='all'):
+    def _get_cidx(self, condition):
         if condition=='all':
             cidx=True
         elif isinstance(condition, int):
@@ -269,19 +269,61 @@ class StopTaskDataSet(object):
             cidx=condition
         else:
             raise TypeError('condition=%s not usable'%str(condition))
+        return cidx
+
+    def get_ssd_dist(self, condition='all'):
+        cidx=self._get_cidx(condition)
         a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
         return a
-        
-    
+
+    def response_rate(self, condition='all'):
+        """
+        response rate (RR) is the proportion of responses at a given SSD
+        (1-pstop)
+        """
+        cidx=self._get_cidx(condition)
+        a=self.get_ssd_dist(condition)
+        ssds=a[:,0]
+        nssds=a[:,1].astype(np.int)
+        pstop=np.array([np.sum(np.isnan(self.RT[cidx & (self.SSD==ssd)]))/float(nssds[i]) for i,ssd in enumerate(ssds)])
+        return dict( zip(ssds,1-pstop) )
+
+    def SSRT_obs(self, condition="all"):
+        """
+        Return "observed" Stop-signal-RT (SSRT) at each SSD.
+
+        if condition=="all", it is done across conditions, else only
+        for the specified conditions
+
+        Returns:
+
+        dict with keys the SSDs and SSRT_obs as value
+
+        ref. Band et al., 2003, Acta Psych.
+        """
+        cidx=self._get_cidx(condition)
+        RR=self.response_rate(condition)
+        SSRTobs={}
+        for ssd, rr in RR.items():
+            SSRTobs[ssd]=np.percentile( self.RT[cidx], rr)-ssd
+        return SSRTobs
+
+    def SSRT_av(self, condition="all"):
+        """
+        This is the mean of all $SSRT_{obs}$ for which 0.15 < response_rate < .85
+
+        ref. Band et al., 2003, Acta Psych.
+        """
+        obs=np.array(self.SSRT_obs(condition).items(), dtype=np.float)
+        valid=((obs[:,0]>.15) & (obs[:,0]<.85))
+        return np.mean(obs[:,1][valid])
+
     def plot_ssd(self, condition='all', counts=False, bw=.01, xlims=None):
         """plot distribution of SSDs (num samples per SSD)
 
         bw is the barwidth
         """
-        if condition=='all':
-            cidx=True
-        else:
-            cidx=(self.condition==condition)
+        cidx=self._get_cidx(condition)
         a=stats.itemfreq(self.SSD[(cidx) & np.isfinite(self.SSD)])#.astype(np.int)
         if counts==False:
             a[:,1]/=np.sum(a[:,1])
@@ -296,10 +338,7 @@ class StopTaskDataSet(object):
 
     def plot_pstop_ssd(self, condition='all', counts=False, bw=.01):
         """plot empirical pstop vs. ssd (over all conditions or for a specific one)"""
-        if condition=='all':
-            cidx=True
-        else:
-            cidx=(self.condition==condition)
+        cidx=self._get_cidx(condition)
         a=self.get_ssd_dist(condition)
         ssds=a[:,0]
         nssds=a[:,1].astype(np.int)
@@ -336,6 +375,7 @@ if __name__=="__main__":
     dat.columns=['sleepdep','stimulus','SSD','response','correct', 'RT']
     ds=StopTaskDataSet(design,dat)
     ds.check(verbose=True)
+    print ds.SSRT_obs()
     #print ds.as_dataframe(conditions_expanded=False).head(50)
     #print ds.as_dataframe(conditions_expanded=True).head(50)
     #print ds.as_dataframe(form='wide', conditions_expanded=True).head(50)
