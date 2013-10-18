@@ -286,7 +286,8 @@ class StopTaskDataSet(object):
         ssds=a[:,0]
         nssds=a[:,1].astype(np.int)
         pstop=np.array([np.sum(np.isnan(self.RT[cidx & (self.SSD==ssd)]))/float(nssds[i]) for i,ssd in enumerate(ssds)])
-        return dict( zip(ssds,1-pstop) )
+
+        return np.array( [ssds, 1-pstop] ).T
 
     def SSRT_obs(self, condition="all"):
         """
@@ -306,19 +307,25 @@ class StopTaskDataSet(object):
         """
         cidx=self._get_cidx(condition)
         RR=self.response_rate(condition)
-        SSRTobs={}
-        for ssd, rr in RR.items():
-            SSRTobs[ssd]=np.percentile( self.RT[cidx & np.isnan(self.SSD)], rr)-ssd
+        SSRTobs=np.zeros_like(RR)
+        for i in range(RR.shape[0]):
+            ssd, rr = tuple(RR[i,:])
+            SSRTobs[i,0]=ssd
+            SSRTobs[i,1]=np.percentile( self.RT[cidx & np.isnan(self.SSD) & ~np.isnan(self.RT)], rr*100.)-ssd
         return SSRTobs
 
-    def SSRT_av(self, condition="all"):
+    def SSRT_av(self, condition="all", min_samples=0):
         """
         This is the mean of all $SSRT_{obs}$ for which 0.15 < response_rate < .85
 
+        Include only those SSDs that have at least `min_samples` samples
+
         ref. Band et al., 2003, Acta Psych.
         """
-        obs=np.array(self.SSRT_obs(condition).items(), dtype=np.float)
-        valid=((obs[:,0]>.15) & (obs[:,0]<.85))
+        obs=self.SSRT_obs(condition)
+        rr=self.response_rate(condition)
+        nssds=self.get_ssd_dist(condition)[:,1]
+        valid=((rr[:,1]>.15) & (rr[:,1]<.85) & (nssds>=min_samples))
         return np.mean(obs[:,1][valid])
 
     def plot_ssd(self, condition='all', counts=False, bw=.01, xlims=None):
