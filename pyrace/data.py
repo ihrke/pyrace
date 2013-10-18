@@ -292,6 +292,9 @@ class StopTaskDataSet(object):
         """
         Return "observed" Stop-signal-RT (SSRT) at each SSD.
 
+        This is calculated as the RR-th percentile of the GO-RT-distribution
+        minus the used SSD.
+
         if condition=="all", it is done across conditions, else only
         for the specified conditions
 
@@ -305,7 +308,7 @@ class StopTaskDataSet(object):
         RR=self.response_rate(condition)
         SSRTobs={}
         for ssd, rr in RR.items():
-            SSRTobs[ssd]=np.percentile( self.RT[cidx], rr)-ssd
+            SSRTobs[ssd]=np.percentile( self.RT[cidx & np.isnan(self.SSD)], rr)-ssd
         return SSRTobs
 
     def SSRT_av(self, condition="all"):
