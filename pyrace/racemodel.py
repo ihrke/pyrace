@@ -427,7 +427,7 @@ class StopTaskRaceModel(RaceModel):
         if conditions=='all':
             conditions=range(self.design.nconditions())
         elif conditions==None:
-            conditions=[range(self.design.nconditions())]
+            conditions=[list(range(self.design.nconditions()))]
         
         a=int(np.sqrt(len(conditions)))
         b=np.ceil(len(conditions)/float(a))
@@ -470,7 +470,98 @@ class StopTaskRaceModel(RaceModel):
                 
         if not subplots:
             pl.legend()
-        
+
+    def plot_fit_percentile(self, dat, percentiles=[.1, .25, .5, .75, .85, .9],
+                            lims=None, res=1000, conditions='all',
+                            split_by_response='response'):
+        colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
+
+        percentiles=np.array(percentiles)*100.
+
+        def get_theo_perc(percentiles, mod, cond, resp):
+            print "get perc for", cond, resp,
+            def blub(x,mod, cond, resp):
+                return scipy.integrate.quad(lambda x2,mod,cond,resp: mod.dens_acc_go(x2,cond,resp), 0, x,
+                                            args=(mod,cond,resp))[0]
+
+            def blub2(x,per,mod,cond,resp):
+                return (blub(x,mod,cond,resp)-per)**2  if x>0 else ((x)*10)**2+(blub(1e-10,mod,cond,resp)-per)**2
+
+            mps=[]
+            for i,per in enumerate(percentiles):
+                per=per/100.
+                a=scipy.optimize.minimize_scalar( blub2, args=(per,mod, cond, resp))
+                mps.append(a.x)
+            print mps
+            return np.array(mps)
+
+        if conditions=='all':
+            conditions=range(self.design.nconditions())
+        elif conditions==None:
+            conditions=[list(range(self.design.nconditions()))]
+
+        a=int(np.sqrt(len(conditions)))
+        b=np.ceil(len(conditions)/float(a))
+
+        for cix,cond in enumerate(conditions):
+            print cond
+            pl.subplot(a,b,cix+1)
+            if isinstance(cond, int):
+                condidx=(dat.condition==cond)
+            if isinstance(cond, Iterable):
+                condidx=np.array( [dcond in cond for dcond in dat.condition], dtype=np.bool)
+
+            goix=((condidx) & np.isfinite(dat.RT) & np.isnan(dat.SSD))
+
+            ## construct response indices
+            if split_by_response not in ['response', 'correct']:
+                split_by_response=='response'
+
+            if split_by_response=='response':
+                respidcs=[ (ri, resp, (dat.response==ri)) for ri,resp in enumerate(self.design.responses)]
+            else:
+                con=cond[0] if isinstance(cond,Iterable) else cond
+                corr_ri=self.design.correct_response(con, as_index=True)
+                inc_ri=((corr_ri + 1) % self.design.nresponses())
+                respidcs=[(ri, resp, dat.correct==rbo) for rbo,resp,ri in zip([True, False], ['correct', 'incorrect'], [corr_ri,inc_ri])]
+
+            for ri,resp,respix in respidcs:
+                #resp, respix=resptup
+                d=dat.RT[goix & respix]
+                # plot data
+                ps=np.array(np.percentile(d, list(percentiles)))
+                pl.plot( ps, percentiles/100., 'x')
+
+                if isinstance(cond, Iterable):
+                    for con in cond:
+                        if split_by_response=='correct':
+                            corr_ri=self.design.correct_response(con, as_index=True)
+                            inc_ri =( (corr_ri+1) % self.design.nresponses())
+                            cri=corr_ri if resp=='correct' else inc_ri
+                        else:
+                            cri=ri
+
+                        y=get_theo_perc(percentiles, self, con, cri)
+                        pl.plot(y, percentiles/100., "o-", color=colors[ri], linewidth=2)
+                else:
+                    y=get_theo_perc(percentiles, self, cond, ri)
+                    pl.plot(y, percentiles/100., "o-", color=colors[ri], linewidth=2)
+
+            if isinstance(cond, Iterable):
+                titlab=(",".join( ":".join(self.design.condidx(con)) for con in cond))
+            else:
+                titlab=(":".join(self.design.condidx(cond)))
+
+            # long title, guaranteed to fit w matplotlib
+            titlab=("\n".join(wrap(titlab,width=70)))
+            pl.title(titlab, fontsize='small')
+
+            if cix==0:
+                pl.legend()
+
+            pl.ylim(0,1)
+
+
     def plot_fit_go(self, dat, lims=(0.001,5), res=100, nbins=20, conditions='all', split_by_response='correct', ylim_fixed=True):
         """
         Plot histogram of GO-trials and the model-solution per condition.
@@ -496,6 +587,9 @@ class StopTaskRaceModel(RaceModel):
            should the y-axis be fixed across conditions?
         """
         colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
+        if lims[0]<=0:
+            lims[0]=1e-10
+
         if isinstance(nbins, int):
             bins=np.linspace(lims[0], lims[1], nbins)
         else:

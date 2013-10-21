@@ -144,7 +144,7 @@ class ModelTable():
     Stuff that is missing:
 
     DONE: specify constant parameters
-    TODO: boundary specification
+    DONE: boundary specification
             * accumulators should propose maximal boundaries
             * ParMap should implement a tighter setting of those boundaries
     DONE: arbitrary parameter-mapping (e.g., map b to A+B)
@@ -350,7 +350,7 @@ class ModelTable():
 
         co_paramspec.__module__="__main__"
         classobj.__module__="__main__"
-        classobj.paramspec=co_paramspec  ## required!! else we old paramspec
+        classobj.paramspec=co_paramspec  # required!! else we get old paramspec
         classobj.modeltable=self
         return classobj
 
