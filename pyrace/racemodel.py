@@ -471,29 +471,51 @@ class StopTaskRaceModel(RaceModel):
         if not subplots:
             pl.legend()
 
+
+    def dens_acc_go_percentiles(self, cond, nacc, percentiles, tmax=10):
+        """
+        NOT WORKING in general!
+        
+        It does work, when only a single GO-accumulator is present (a single response).
+        Issue: go-density does not integrate to 1, needs to be fixed
+        """
+        # numerical integration to get good brackets for minimization
+        t=np.linspace(1e-10, tmax, 1000)
+        y=self.dens_acc_go(t, cond,nacc)
+        yint=scipy.integrate.cumtrapz(y, t, initial=0)
+
+
+        def cdf(x, cond, nacc):
+            return scipy.integrate.quad(lambda x2,cond,nacc: self.dens_acc_go(x2,cond,nacc), 0, x,
+                                        args=(cond,nacc))[0]
+        def minperc(x,per,cond,nacc):
+                return (cdf(x,cond,nacc)-per)**2  if x>0 else ((x)*10)**2+(cdf(1e-10,cond,nacc)-per)**2
+
+        mps=[]
+        for i,per in enumerate(percentiles):
+            per=per
+            blow=t[np.max(np.where(yint<per)[0])]  # bracketing
+            bup =t[np.min(np.where(yint>per)[0])]
+    #        print blow,bup
+            a=scipy.optimize.minimize_scalar( minperc, bracket=(blow,bup), args=(per, cond, nacc))
+            mps.append(a.x)
+
+            if np.abs(cdf(a.x, cond, nacc)-per)>1e-5:
+                raise Exception('error calculating percentile %.2f: got %.2f at %.2f'%(per, cdf(a.x, cond, nacc), a.x))
+
+        return np.array(mps)
+
+
     def plot_fit_percentile(self, dat, percentiles=[.1, .25, .5, .75, .85, .9],
-                            lims=None, res=1000, conditions='all',
-                            split_by_response='response'):
+                            lims=None, split_by_response='response'):
+        """
+        NOT WORKING!
+
+        See issue above.
+        """
         colors=['red', 'blue', 'green', 'yellow', 'magenta', 'cyan']
 
         percentiles=np.array(percentiles)*100.
-
-        def get_theo_perc(percentiles, mod, cond, resp):
-            print "get perc for", cond, resp,
-            def blub(x,mod, cond, resp):
-                return scipy.integrate.quad(lambda x2,mod,cond,resp: mod.dens_acc_go(x2,cond,resp), 0, x,
-                                            args=(mod,cond,resp))[0]
-
-            def blub2(x,per,mod,cond,resp):
-                return (blub(x,mod,cond,resp)-per)**2  if x>0 else ((x)*10)**2+(blub(1e-10,mod,cond,resp)-per)**2
-
-            mps=[]
-            for i,per in enumerate(percentiles):
-                per=per/100.
-                a=scipy.optimize.minimize_scalar( blub2, args=(per,mod, cond, resp))
-                mps.append(a.x)
-            print mps
-            return np.array(mps)
 
         if conditions=='all':
             conditions=range(self.design.nconditions())
