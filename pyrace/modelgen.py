@@ -27,6 +27,7 @@ class {modelname}({parentclass}):
 
     def __init__(self, pars=None):
         self.design={design}
+        self.set_mixing_probabilities(0,0)
 
         if pars!=None:
             if not isinstance(pars, self.paramspec):
@@ -34,7 +35,6 @@ class {modelname}({parentclass}):
             self.set_params(pars)
         else:
             self.set_params(self.__class__.paramspec().random())
-        self.set_mixing_probabilities(0,0)
 
     def copy(self):
         m=self.__class__(self.params)
@@ -46,8 +46,8 @@ class {modelname}({parentclass}):
 
     def set_params(self, pars):
         self.params=pars
-        go_acc=[ [None for resp in range(self.design.nresponses())] for cond in range(self.design.nconditions())]
-        stop_acc=[ None for cond in range(self.design.nconditions())]
+        _go_acc=[ [None for resp in range(self.design.nresponses())] for cond in range(self.design.nconditions())]
+        _stop_acc=[ None for cond in range(self.design.nconditions())]
 
 {pardef}
 
@@ -55,17 +55,17 @@ class {modelname}({parentclass}):
 
 {stop_accumulator_definition}
 
-        self.set_accumulators(go_acc, stop_acc)
+        self.set_accumulators(_go_acc, _stop_acc)
 
         ## mixing probabilities
-        pgf=[0 for cond in range(self.design.nconditions())]
-        ptf=[0 for cond in range(self.design.nconditions())]
+        _pgf=[0 for cond in range(self.design.nconditions())]
+        _ptf=[0 for cond in range(self.design.nconditions())]
 
 {prob_go_fail_definition}
 
 {prob_trigger_fail_definition}
 
-        self.set_mixing_probabilities(pgf, ptf)
+        self.set_mixing_probabilities(_pgf, _ptf)
     """
 
 
@@ -266,7 +266,7 @@ class ModelTable():
 
 
         ## go-accumulators
-        tpl="""        go_acc[{cond}][{iresp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
+        tpl="""        _go_acc[{cond}][{iresp}]=self.accumulator_type({parlist}, name='go-'+':'.join(self.design.condidx({cond})))\n"""
         go_acc_def=""
         for cond in range(self.design.nconditions()):
             for iresp, resp in enumerate(self.design.get_responses()):
@@ -280,7 +280,7 @@ class ModelTable():
                 go_acc_def+=tpl.format(cond=cond,resp=resp,iresp=iresp, parlist=parlist)
 
         ## STOP-accumulators
-        tpl="""        stop_acc[{cond}]=self.accumulator_type({parlist}, name='stop-'+':'.join(self.design.condidx({cond})))\n"""
+        tpl="""        _stop_acc[{cond}]=self.accumulator_type({parlist}, name='stop-'+':'.join(self.design.condidx({cond})))\n"""
         stop_acc_def=""
         for cond in range(self.design.nconditions()):
             pard={k:self.table[k][(self.table.condition==cond)
@@ -294,12 +294,12 @@ class ModelTable():
             stop_acc_def+=tpl.format(cond=cond, parlist=parlist)
 
         ## mixing probabilities
-        tpl="""        pgf[{cond}]={pgf}\n"""
+        tpl="""        _pgf[{cond}]={pgf}\n"""
         pgf_def=""
         for cond in range(self.design.nconditions()):
             pgf_def+=tpl.format(cond=cond, pgf=self.table['pgf'][self.table.condition==cond].iloc[0])
 
-        tpl="""        ptf[{cond}]={ptf}\n"""
+        tpl="""        _ptf[{cond}]={ptf}\n"""
         ptf_def=""
         for cond in range(self.design.nconditions()):
             ptf_def+=tpl.format(cond=cond, ptf=self.table['ptf'][self.table.condition==cond].iloc[0])
