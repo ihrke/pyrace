@@ -53,6 +53,35 @@ def trans_logistic(x, a=0, b=1, inverse=False):
         x=np.where(x>=b, b-1e-12, x)
         return -np.log( float(b-a)/(x-a)-1)
 
+def trans_logistic_vec(x, a, b, inverse=False):
+    """
+    vectorized version of trans_logistic()
+    
+    goes from [a,b] to [-inf,+inf] and back;
+    inverse=False: [a,b] -> [-inf, +inf]
+    inverse=True:  [-inf,+inf] -> [a,b]
+
+    if a or b is +/-infty, a logarithmic/exponential transform is used
+    """
+    eps=1e-15
+    if inverse==False:
+        # variables from [a,inf]
+        x=np.where( (a>-np.infty) & (b==np.infty), np.log(np.maximum(x-a, eps)), x)
+        # variables from [-inf, b]
+        x=np.where( (a==-np.infty) & (b<np.infty), np.log(np.maximum(b-x, eps)), x)
+        # variables from [a, b]
+        x=np.where( (a>-np.infty) & (b<np.infty), -np.log( (b-a)/(x-a)-1 ), x)
+    elif inverse==True:
+        # variables from [-inf,inf] -> [a,inf]
+        x=np.where( (a>-np.infty) & (b==np.infty), np.exp(x)+a, x)
+        # variables from [-inf, inf] -> [-inf, b]
+        x=np.where( (a==-np.infty) & (b<np.infty), b-np.exp(x), x)
+        # variables from [-inf,inf] -> [a, b]
+        x=np.where( (a>-np.infty) & (b<np.infty), (1./(1.+np.exp(-x)))*(b-a)+a, x)
+    
+    return x
+
+    
 
 class ProgressBar:
     """stolen from somewhere, I guess PyMC?"""

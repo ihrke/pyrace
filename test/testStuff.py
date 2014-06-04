@@ -144,6 +144,25 @@ class testTools(unittest.TestCase):
         x2=pr.trans_logistic(y, -np.infty, +np.infty, inverse=True)
         assert np.all( np.abs(x-x2)<1e-8 )
 
+    def test_trans_logistic_vect(selef):
+        ## forward test
+        n=1000
+        a=np.where(np.random.rand(n)>.7, -np.infty, (30)*np.random.random(n)-100.) 
+        b=np.where(np.random.rand(n)>.7, np.infty, (30)*np.random.random(n)+100.)
+        x=np.where( (a>-np.infty) & (b<np.infty), (b-a)*np.random.random(n)+a, 
+                    np.where( (a>-np.infty) & (b==np.infty), 100*np.random.random(n)+a,
+                              np.where( (a==-np.infty) & (b==np.infty), 100*np.random.random(n)-50,
+                                        b-np.random.random(n)*100)))
+
+        trans1=np.array([trans_logistic(xi,ai,bi) for xi,ai,bi in zip(x,a,b)])
+        trans2=trans_logistic_vec(x,a,b)
+        assert np.all(np.abs(trans1-trans2)<1e-20)
+
+        ## backward test
+        assert np.all([abs(trans_logistic(tri,ai,bi,inverse=True)-xi)<=1e-10 for tri,xi,ai,bi in zip(trans2,x,a,b)])
+        newtr=trans_logistic_vec(trans2, a, b, inverse=True)
+        assert np.all(np.abs(newtr-x)<=1e-10)
+
 
 class testPlotting(PlottingEnabledTestCase):
     def test_plot_bar_parameters1(self):
